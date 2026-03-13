@@ -1,0 +1,2531 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Satori · Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;600;700&family=DM+Mono:wght@300;400;500&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0d0d0d; --paper:#f5f0e8; --red:#c23b22; --gold:#c8a96e;
+  --muted:#8a8070; --panel:#ede8de; --border:#d4cfc4;
+  --green:#4a7c59; --blue:#2a4a6b; --purple:#7a5c8a;
+  --gold-dim:#c8a96e30;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--paper);color:var(--ink);font-family:'DM Mono',monospace;min-height:100vh;}
+
+/* ── SCREENS ── */
+.screen{display:none !important;}
+.screen.active{display:block !important;}
+#screen-login.active{display:flex !important;}
+
+/* ── LOGIN ── */
+#screen-login{
+  min-height:100vh;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;padding:40px 20px;
+  background:var(--ink);
+}
+.login-logo{font-family:'Shippori Mincho',serif;font-size:42px;font-weight:700;
+  color:var(--gold);letter-spacing:.18em;margin-bottom:6px;}
+.login-sub{font-size:10px;letter-spacing:.45em;color:#555;margin-bottom:56px;text-transform:uppercase;}
+.login-box{background:#111;border:1px solid #2a2a2a;padding:36px;border-radius:3px;width:100%;max-width:440px;}
+.login-label{font-size:9px;letter-spacing:.35em;text-transform:uppercase;color:#666;margin-bottom:12px;}
+.login-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;}
+.login-btn{
+  background:#1a1a1a;border:1px solid #2a2a2a;padding:16px;
+  font-family:'DM Mono',monospace;font-size:12px;color:#aaa;
+  cursor:pointer;border-radius:2px;transition:all .15s;text-align:left;letter-spacing:.05em;
+}
+.login-btn:hover{border-color:var(--gold);color:var(--gold);}
+.login-btn.manager{background:#1a1208;border-color:#c8a96e40;color:var(--gold);}
+.login-btn.manager:hover{background:#1e1608;border-color:var(--gold);}
+.login-divider{
+  font-size:8px;letter-spacing:.4em;color:#333;text-align:center;
+  padding:14px 0;text-transform:uppercase;
+}
+
+/* ── APP SHELL ── */
+header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 40px;height:56px;border-bottom:1px solid var(--border);
+  background:var(--ink);position:sticky;top:0;z-index:200;
+}
+.logo{font-family:'Shippori Mincho',serif;font-size:20px;font-weight:700;
+  letter-spacing:.15em;color:var(--gold);display:flex;align-items:center;gap:10px;}
+.logo-mode{
+  font-family:'DM Mono',monospace;font-size:8px;letter-spacing:.3em;
+  text-transform:uppercase;color:#555;padding:3px 9px;border:1px solid #2a2a2a;border-radius:1px;
+}
+.logo-mode.sal{color:var(--gold);border-color:var(--gold-dim);}
+.header-right{display:flex;align-items:center;gap:14px;}
+.header-user{font-size:11px;color:var(--gold);}
+.btn-exit{
+  background:none;border:1px solid #333;padding:6px 14px;
+  font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.2em;
+  text-transform:uppercase;color:#666;cursor:pointer;border-radius:1px;transition:all .15s;
+}
+.btn-exit:hover{border-color:var(--red);color:var(--red);}
+
+/* ── NAV ── */
+.nav{display:flex;padding:0 40px;background:var(--panel);border-bottom:2px solid var(--border);
+  overflow-x:auto;gap:0;scrollbar-width:none;}
+.nav::-webkit-scrollbar{display:none;}
+.ntab{
+  padding:13px 22px;cursor:pointer;font-size:10px;letter-spacing:.18em;
+  text-transform:uppercase;border-bottom:2px solid transparent;
+  margin-bottom:-2px;color:var(--muted);transition:all .2s;white-space:nowrap;
+}
+.ntab:hover{color:var(--ink);}
+.ntab.active{color:var(--red);border-bottom-color:var(--red);font-weight:700;}
+.ntab.gold.active{color:var(--gold);border-bottom-color:var(--gold);}
+
+/* ── MAIN ── */
+.main{padding:32px 40px;max-width:1440px;margin:0 auto;}
+.view{display:none;}
+.view.active{display:block;animation:fadeUp .25s ease both;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── SECTION LABEL ── */
+.sl{font-size:9px;letter-spacing:.45em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:20px;display:flex;align-items:center;gap:12px;}
+.sl::after{content:'';flex:1;height:1px;background:var(--border);}
+
+/* ── DATE RANGE BAR ── */
+.range-bar{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  margin-bottom:28px;padding:14px 18px;
+  background:var(--panel);border:1px solid var(--border);border-radius:2px;
+}
+.range-bar label{font-size:9px;letter-spacing:.25em;text-transform:uppercase;color:var(--muted);}
+.range-input{
+  border:1px solid var(--border);padding:7px 11px;
+  font-family:'DM Mono',monospace;font-size:11px;background:#fff;
+  border-radius:1px;outline:none;color:var(--ink);
+}
+.range-input:focus{border-color:var(--gold);}
+.range-preset{
+  background:none;border:1px solid var(--border);padding:7px 14px;
+  font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.15em;
+  text-transform:uppercase;cursor:pointer;border-radius:1px;color:var(--muted);transition:all .15s;
+}
+.range-preset:hover,.range-preset.active{border-color:var(--gold);color:var(--gold);}
+.range-sep{color:var(--border);font-size:18px;}
+
+/* ── KPI GRID ── */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:36px;}
+.kpi{background:var(--ink);padding:18px 16px;border-radius:2px;position:relative;overflow:hidden;min-width:0;}
+.kpi::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;background:var(--gold);}
+.kpi.red::before{background:var(--red);}
+.kpi.green::before{background:var(--green);}
+.kpi.blue::before{background:var(--blue);}
+.kpi-label{font-size:8px;letter-spacing:.3em;text-transform:uppercase;color:#555;margin-bottom:8px;}
+.kpi-val{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:#f0ece4;line-height:1;white-space:nowrap;display:inline-block;transform-origin:left center;}
+.kpi-delta{font-size:10px;margin-top:6px;}
+.kpi-delta.up{color:var(--green);}
+.kpi-delta.down{color:var(--red);}
+.kpi-delta.flat{color:#555;}
+.kpi-sub{font-size:9px;color:#444;margin-top:4px;}
+
+/* ── CRYPTO CHART ── */
+.chart-wrap{
+  background:#fff;border:1px solid var(--border);border-radius:2px;
+  padding:24px;margin-bottom:32px;position:relative;
+}
+.chart-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;flex-wrap:wrap;gap:12px;}
+.chart-title{font-family:'Shippori Mincho',serif;font-size:18px;font-weight:700;}
+.chart-meta{text-align:right;}
+.chart-current{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:var(--ink);}
+.chart-pct{font-size:12px;padding:3px 10px;border-radius:2px;font-weight:700;margin-top:4px;display:inline-block;}
+.chart-pct.up{background:#e8f3ec;color:var(--green);}
+.chart-pct.down{background:#fdf0ee;color:var(--red);}
+.chart-pct.flat{background:var(--panel);color:var(--muted);}
+.chart-legend{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:14px;}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:10px;cursor:pointer;}
+.legend-dot{width:10px;height:10px;border-radius:50%;}
+#chart-canvas{width:100%;height:220px;display:block;}
+
+/* ── TABLES ── */
+.rt{width:100%;border-collapse:collapse;font-size:12px;}
+.rt thead tr{background:var(--ink);color:#f0ece4;}
+.rt thead th{padding:11px 16px;text-align:left;font-size:8px;letter-spacing:.3em;text-transform:uppercase;font-weight:400;}
+.rt thead th.sortable{cursor:pointer;user-select:none;}
+.rt thead th.sortable:hover{color:var(--gold);}
+.rt thead th.sort-active{color:var(--gold);}
+.sort-arrow{margin-left:4px;opacity:.5;font-size:9px;}
+.rt thead th.sort-active .sort-arrow{opacity:1;color:var(--gold);}
+.rt tbody tr{border-bottom:1px solid var(--border);transition:background .1s;}
+.rt tbody tr:hover{background:var(--panel);}
+.rt td{padding:11px 16px;vertical-align:middle;}
+.rt td.num{font-family:'Syne',sans-serif;font-weight:800;}
+.rank-pos{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--border);}
+.rank-pos.p1{color:#c8a96e;}.rank-pos.p2{color:#999;}.rank-pos.p3{color:#cd7f32;}
+.bar-mini{height:5px;background:var(--red);border-radius:1px;margin-top:4px;}
+.td-name{font-family:'Shippori Mincho',serif;font-size:14px;font-weight:600;}
+.td-sub{font-size:9px;color:var(--muted);margin-top:2px;}
+.badge{font-size:8px;letter-spacing:.2em;text-transform:uppercase;
+  padding:3px 8px;border-radius:1px;font-weight:700;}
+.badge-up{background:#e8f3ec;color:var(--green);}
+.badge-down{background:#fdf0ee;color:var(--red);}
+
+/* ── CARDS GRID ── */
+.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:20px;}
+.card{background:#fff;border:1px solid var(--border);border-radius:2px;overflow:hidden;}
+.card-head{background:var(--ink);padding:16px 20px;display:flex;justify-content:space-between;align-items:flex-start;}
+.card-name{font-family:'Shippori Mincho',serif;font-size:18px;color:#f0ece4;font-weight:600;}
+.card-total{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--gold);text-align:right;}
+.card-body{padding:16px 20px;}
+.stat{display:flex;justify-content:space-between;align-items:baseline;
+  padding:6px 0;border-bottom:1px solid var(--border);font-size:11px;}
+.stat:last-child{border-bottom:none;}
+.stat-l{color:var(--muted);}
+.stat-r{font-weight:600;}
+
+/* ── UPLOAD ZONE ── */
+.upload-zone{
+  border:2px dashed var(--border);border-radius:3px;padding:48px;
+  text-align:center;cursor:pointer;transition:all .2s;background:#fff;
+  margin-bottom:28px;
+}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--gold);background:#fffbf3;}
+.upload-icon{font-size:36px;margin-bottom:14px;}
+.upload-title{font-family:'Shippori Mincho',serif;font-size:18px;margin-bottom:8px;}
+.upload-sub{font-size:10px;color:var(--muted);letter-spacing:.1em;}
+.upload-list{background:#fff;border:1px solid var(--border);border-radius:2px;overflow:hidden;}
+.upload-row{
+  display:flex;align-items:center;gap:14px;padding:13px 18px;
+  border-bottom:1px solid var(--border);font-size:11px;
+}
+.upload-row:last-child{border-bottom:none;}
+.upload-dot{width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0;}
+.upload-fname{flex:1;font-weight:600;}
+.upload-date{color:var(--muted);}
+.upload-del{background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;
+  padding:2px 6px;transition:color .15s;}
+.upload-del:hover{color:var(--red);}
+
+/* ── COMPETENCIAS ── */
+.comp-tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:24px;}
+.comp-tab{
+  padding:10px 20px;cursor:pointer;font-size:10px;letter-spacing:.15em;
+  text-transform:uppercase;border-bottom:2px solid transparent;margin-bottom:-1px;
+  color:var(--muted);transition:all .2s;
+}
+.comp-tab.active{color:var(--gold);border-bottom-color:var(--gold);font-weight:700;}
+.comp-view{display:none;}
+.comp-view.active{display:block;}
+.comp-card{background:#fff;border:1px solid var(--border);border-radius:2px;margin-bottom:20px;overflow:hidden;}
+.comp-head{background:var(--ink);padding:16px 22px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;}
+.comp-name{font-family:'Shippori Mincho',serif;font-size:19px;color:var(--gold);font-weight:700;}
+.comp-body{padding:20px 22px;}
+.comp-badge{font-size:8px;letter-spacing:.25em;text-transform:uppercase;
+  padding:3px 9px;border-radius:1px;font-weight:700;}
+.badge-semanal{background:#c8a96e20;color:var(--gold);border:1px solid #c8a96e60;}
+.badge-mensual{background:#4a7c5920;color:#4a7c59;border:1px solid #4a7c5960;}
+.badge-especial{background:#c23b2220;color:#c23b22;border:1px solid #c23b2260;}
+.progress-bar{height:6px;background:var(--panel);border-radius:2px;overflow:hidden;margin:10px 0 4px;}
+.progress-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--red),var(--gold));transition:width .5s;}
+.comp-prod-tags{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:18px;}
+.prod-tag{background:var(--panel);border:1px solid var(--border);padding:4px 11px;
+  font-size:10px;border-radius:1px;letter-spacing:.06em;}
+.rank-table{width:100%;border-collapse:collapse;font-size:11px;}
+.rank-table th{font-size:8px;letter-spacing:.3em;text-transform:uppercase;color:var(--muted);
+  padding:6px 10px;text-align:left;border-bottom:2px solid var(--border);}
+.rank-table td{padding:10px 10px;border-bottom:1px solid var(--border);}
+.rank-table tr:last-child td{border-bottom:none;}
+.rank-bar-wrap{height:4px;background:var(--border);border-radius:1px;overflow:hidden;margin-top:4px;width:100%;}
+.rank-bar-fill{height:100%;background:var(--red);border-radius:1px;}
+.comp-no-data{padding:28px;text-align:center;color:var(--muted);font-size:10px;letter-spacing:.2em;}
+.comp-actions{display:flex;gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid var(--border);}
+.btn-sm{background:none;border:1px solid var(--border);padding:6px 14px;
+  font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.15em;text-transform:uppercase;
+  cursor:pointer;border-radius:1px;color:var(--muted);transition:all .15s;}
+.btn-sm:hover{border-color:var(--ink);color:var(--ink);}
+.btn-sm.del:hover{border-color:var(--red);color:var(--red);}
+
+/* ── FORM ── */
+.form-card{background:#fff;border:1px solid var(--border);padding:28px;border-radius:2px;max-width:820px;}
+.form-title{font-family:'Shippori Mincho',serif;font-size:18px;font-weight:700;
+  margin-bottom:22px;padding-bottom:12px;border-bottom:2px solid var(--ink);}
+.form-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;}
+.form-group{flex:1;min-width:150px;display:flex;flex-direction:column;gap:5px;}
+.form-label{font-size:8px;letter-spacing:.3em;text-transform:uppercase;color:var(--muted);font-weight:600;}
+.form-input{border:1px solid var(--border);padding:8px 11px;
+  font-family:'DM Mono',monospace;font-size:11px;background:var(--paper);
+  outline:none;border-radius:1px;transition:border .15s;color:var(--ink);}
+.form-input:focus{border-color:var(--gold);}
+.form-sec{font-size:9px;letter-spacing:.35em;text-transform:uppercase;color:var(--muted);
+  margin:18px 0 10px;padding-bottom:5px;border-bottom:1px solid var(--border);}
+.prod-row-form{display:flex;gap:8px;align-items:center;margin-bottom:8px;}
+.prod-idx{width:20px;height:20px;background:var(--ink);color:var(--gold);
+  font-family:'Syne',sans-serif;font-size:10px;font-weight:800;
+  display:flex;align-items:center;justify-content:center;border-radius:1px;flex-shrink:0;}
+.prod-inp{flex:1;border:1px solid var(--border);padding:7px 10px;
+  font-family:'DM Mono',monospace;font-size:11px;background:var(--paper);
+  border-radius:1px;outline:none;color:var(--ink);}
+.prod-inp:focus{border-color:var(--gold);}
+.sug-box{position:absolute;top:100%;left:0;right:0;background:#fff;
+  border:1px solid var(--border);border-top:none;z-index:50;
+  font-size:11px;max-height:150px;overflow-y:auto;display:none;}
+.sug-item{padding:7px 11px;cursor:pointer;border-bottom:1px solid var(--border);}
+.sug-item:hover{background:var(--panel);}
+.btn-del-row{background:none;border:1px solid var(--border);width:26px;height:26px;
+  cursor:pointer;color:var(--muted);font-size:13px;border-radius:1px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.btn-del-row:hover{border-color:var(--red);color:var(--red);}
+.btn-add{margin-top:4px;background:none;border:1px dashed var(--border);
+  padding:6px 14px;font-family:'DM Mono',monospace;font-size:9px;
+  letter-spacing:.15em;color:var(--muted);cursor:pointer;border-radius:1px;transition:all .15s;}
+.btn-add:hover{border-color:var(--gold);color:var(--gold);}
+.checks-grid{display:flex;flex-wrap:wrap;gap:8px;}
+.check-item{display:flex;align-items:center;gap:7px;padding:7px 12px;
+  border:1px solid var(--border);border-radius:1px;cursor:pointer;font-size:11px;transition:all .15s;}
+.check-item input{accent-color:var(--gold);}
+.check-item.on{border-color:var(--gold);background:#fffbf3;}
+.btn-primary{background:var(--ink);color:var(--gold);border:none;
+  padding:10px 24px;font-family:'DM Mono',monospace;font-size:10px;
+  letter-spacing:.18em;text-transform:uppercase;cursor:pointer;
+  border-radius:1px;font-weight:700;transition:all .15s;}
+.btn-primary:hover{background:#222;}
+.btn-ghost{background:none;color:var(--muted);border:1px solid var(--border);
+  padding:10px 20px;font-family:'DM Mono',monospace;font-size:9px;
+  letter-spacing:.15em;text-transform:uppercase;cursor:pointer;border-radius:1px;transition:all .15s;}
+.btn-ghost:hover{border-color:var(--muted);color:var(--ink);}
+.msg-ok{color:var(--green);font-size:10px;margin-top:8px;display:none;}
+.msg-err{color:var(--red);font-size:10px;margin-top:8px;display:none;}
+
+/* ── SALONERO personal view ── */
+.sal-hero{
+  background:var(--ink);padding:28px 32px;border-radius:2px;margin-bottom:28px;
+  display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;
+}
+.sal-hero-name{font-family:'Shippori Mincho',serif;font-size:32px;color:var(--gold);font-weight:700;}
+.sal-hero-sub{font-size:9px;letter-spacing:.3em;color:#555;text-transform:uppercase;margin-top:4px;}
+.sal-rank-badge{text-align:right;}
+.sal-rank-num{font-family:'Syne',sans-serif;font-size:48px;font-weight:800;color:#f0ece4;line-height:1;}
+.sal-rank-label{font-size:9px;color:#555;letter-spacing:.2em;text-transform:uppercase;}
+
+/* ── MODAL ── */
+.modal-overlay{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;
+  align-items:center;justify-content:center;padding:20px;
+}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--paper);border-radius:3px;padding:32px;width:100%;max-width:500px;
+  border:1px solid var(--border);}
+.modal-title{font-family:'Shippori Mincho',serif;font-size:20px;font-weight:700;margin-bottom:20px;}
+.modal-actions{display:flex;gap:10px;margin-top:24px;justify-content:flex-end;}
+
+/* ── EMPTY STATE ── */
+.empty-state{padding:60px 40px;text-align:center;color:var(--muted);}
+.empty-icon{font-size:40px;margin-bottom:16px;}
+.empty-title{font-family:'Shippori Mincho',serif;font-size:18px;color:var(--ink);margin-bottom:8px;}
+.empty-sub{font-size:10px;letter-spacing:.15em;}
+
+@media(max-width:760px){
+  header,.nav,.main{padding-left:16px;padding-right:16px;}
+  .cards-grid{grid-template-columns:1fr;}
+  .kpi-grid{grid-template-columns:repeat(2,1fr);}
+  .sal-hero{padding:20px;}
+  .sal-rank-num{font-size:36px;}
+}
+
+.ratio-ok  { color:var(--green); font-weight:700; }
+.ratio-mid { color:#c8a030; font-weight:700; }
+.ratio-low { color:var(--blue);  font-weight:700; }
+.ratio-high{ color:var(--red);   font-weight:700; }
+</style>
+</head>
+<body>
+
+<!-- ═══ LOGIN ═══ -->
+<div class="screen active" id="screen-login">
+  <div>
+    <div class="login-logo">里 SATORI</div>
+    <div class="login-sub">Dashboard · Saloneros</div>
+    <div class="login-box">
+      <div class="login-label">Manager</div>
+      <button class="login-btn manager" onclick="enterManager()">⚙ Acceso Manager</button>
+      <div class="login-divider">· · · saloneros · · ·</div>
+      <div class="login-label">Selecciona tu nombre</div>
+      <div class="login-grid" id="login-grid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ APP ═══ -->
+<div class="screen" id="screen-app">
+  <header>
+    <div class="logo">
+      里 SATORI
+      <span class="logo-mode" id="mode-badge">MANAGER</span>
+    </div>
+    <div class="header-right">
+      <span id="storage-badge" style="font-size:9px;color:#555;letter-spacing:.1em;margin-right:6px;" title="Espacio usado en este dispositivo"></span>
+        <span id="sync-badge" style="font-size:9px;letter-spacing:.05em;color:var(--green);opacity:.3;margin-left:12px;transition:opacity .5s"></span>
+      <span class="header-user" id="header-user"></span>
+      <button class="btn-exit" onclick="exitToLogin()">Salir</button>
+    </div>
+  </header>
+  <div class="nav" id="nav-tabs"></div>
+  <div class="main" id="main-views"></div>
+</div>
+
+<!-- ═══ MODAL FECHA XLS ═══ -->
+<div class="modal-overlay" id="modal-fecha">
+  <div class="modal">
+    <div class="modal-title">¿De qué fecha es este archivo?</div>
+    <div class="form-group">
+      <label class="form-label">Fecha del reporte</label>
+      <input class="form-input" type="date" id="modal-fecha-input" style="width:100%">
+    </div>
+    <div id="modal-overwrite-warn" style="display:none;margin-top:14px;padding:10px 14px;
+      background:#fdf0ee;border:1px solid #f0c4bc;border-radius:2px;font-size:10px;color:var(--red);">
+      ⚠ Ya existe un reporte para esta fecha. Si continúas se sobreescribirán los datos.
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeModal('modal-fecha')">Cancelar</button>
+      <button class="btn-primary" onclick="confirmUpload()">Confirmar y subir</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════
+let MODE = null; // 'manager' | 'salonero'
+let CURRENT_USER = null;
+let PENDING_FILE = null;
+
+// Saloneros conocidos - se construye dinámicamente desde datos guardados
+let ALL_SALS = [];
+const CAJEROS_IDS = ['cajero turno mañana','cajero turno manana','cajero turno tarde'];
+function isCajero(name){ return CAJEROS_IDS.includes((name||'').toLowerCase().replace('ñ','n')); }
+function rebuildAllSals(){
+  const seen = new Set();
+  Object.values(DIAS).forEach(dia=>{
+    Object.keys(dia.saloneros||{}).forEach(name=>{ if(!isCajero(name)) seen.add(name); });
+  });
+  ALL_SALS = [...seen].sort();
+}
+const PROD_SUGS = [
+  'CRISPY TUNA BITES','RAINBOW ROLL','POLLO TERIYAKI','SATORI ROLL','TAKO ROLL',
+  'GIN AND JAM','SUBARASHI','NAMATSUKE ROLL','THE SNAPPER ROLL','NEGRONI',
+  'SOPA MISO','BOTELLA PIPA SAUV BLANC','RAMEN KARI','CEVICHE PERUANO',
+  'GINGER MINT LEMONADE','BOWL TERIYAKI LUNCH','CASADO SATORI','SAKURA POKE',
+  'CALIFORNIA ROLL','SPICY TUNA ROLL','GYOZA BENTO','SASHIMI ATUN BENTO',
+  'SPICY BENTO','TERIYAKI BENTO','POKE WAVE','BOXING','QUE MAE PALE ALE',
+];
+
+// ══════════════════════════════════════════════════════
+// FASE 2 · PERSISTENCIA HÍBRIDA (Google Sheets + localStorage como cache/offline)
+// Versión 1.0 · Satori Dashboard
+// ══════════════════════════════════════════════════════
+const DB_VERSION = 2; // v2: totals stored as net (without IVA+Servicio)
+const DB_KEYS = { dias:'satori_dias_v1', comps:'satori_comps_v1', ver:'satori_db_ver', url:'satori_backend_url' };
+
+function load(key, def){
+  try {
+    const v = localStorage.getItem(key);
+    return v ? JSON.parse(v) : def;
+  } catch(e) {
+    console.warn('Error leyendo localStorage:', key, e);
+    return def;
+  }
+}
+
+function save(key, val){
+  try {
+    localStorage.setItem(key, JSON.stringify(val));
+    return true;
+  } catch(e) {
+    // QuotaExceededError — localStorage lleno
+    if(e.name === 'QuotaExceededError'){
+      showStorageWarning();
+    }
+    console.error('Error guardando localStorage:', key, e);
+    return false;
+  }
+}
+
+// ── FASE 2 · Google Sheets backend ──────────────────────────
+let BACKEND_URL = localStorage.getItem('satori_backend_url') || '';
+let BACKEND_ONLINE = false;
+
+function saveBackendUrl(){
+  const inp = document.getElementById('backend-url-inp');
+  if(!inp) return;
+  setBackendUrl(inp.value);
+  syncFromCloud();
+}
+function setBackendUrl(url){
+  BACKEND_URL = (url||'').trim();
+  localStorage.setItem('satori_backend_url', BACKEND_URL);
+}
+
+async function apiCall(params){
+  if(!BACKEND_URL) return null;
+  try{
+    const qs = new URLSearchParams({ key:'satori2026', ...params }).toString();
+    const res = await fetch(BACKEND_URL + '?' + qs);
+    const data = await res.json();
+    return data.ok ? data : null;
+  }catch(e){
+    console.warn('Backend unreachable:', e.message);
+    return null;
+  }
+}
+
+async function syncFromCloud(){
+  if(!BACKEND_URL){ showSyncStatus('Sin backend configurado', true); return false; }
+  showSyncStatus('⟳ Sincronizando...');
+  const r = await apiCall({ action:'getDias' });
+  if(!r){ showSyncStatus('⚠ Sin conexión — offline', true); return false; }
+  const cloudDias = r.dias || {};
+  // Cloud wins over local
+  Object.keys(cloudDias).forEach(k => { DIAS[k] = cloudDias[k]; });
+  save(DB_KEYS.dias, DIAS);
+  const rc = await apiCall({ action:'getComps' });
+  if(rc){ COMPS = rc.comps || []; save(DB_KEYS.comps, COMPS); }
+  BACKEND_ONLINE = true;
+  rebuildAllSals();
+  renderView(document.querySelector('.ntab.active')?.dataset?.id || 'resumen');
+  showSyncStatus('✓ Sincronizado', false, 3000);
+  return true;
+}
+
+async function apiPost(params){
+  if(!BACKEND_URL) return null;
+  try{
+    // Apps Script doPost reads from e.postData.contents
+    const res = await fetch(BACKEND_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' }, // text/plain avoids CORS preflight
+      body: JSON.stringify({ key:'satori2026', ...params })
+    });
+    const data = await res.json();
+    return data.ok ? data : null;
+  }catch(e){
+    console.warn('Backend POST unreachable:', e.message);
+    return null;
+  }
+}
+
+async function saveDiaOne(fecha){
+  save(DB_KEYS.dias, DIAS);
+  updateStorageBadge();
+  if(!BACKEND_URL) return true;
+  const r = await apiPost({ action:'saveDia', fecha, data: JSON.stringify(DIAS[fecha]) });
+  return r !== null;
+}
+
+function showSyncStatus(msg, warn=false, autohide=0){
+  const badge = document.getElementById('sync-badge');
+  if(!badge) return;
+  badge.textContent = msg;
+  badge.style.color = warn ? 'var(--red)' : 'var(--green)';
+  badge.style.opacity = '1';
+  if(autohide) setTimeout(()=>{ badge.style.opacity='0.3'; }, autohide);
+}
+
+function showStorageWarning(){
+  const existing = document.getElementById('storage-warn');
+  if(existing) return;
+  const div = document.createElement('div');
+  div.id = 'storage-warn';
+  div.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#c23b22;color:#fff;' +
+    'padding:14px 18px;border-radius:2px;font-size:11px;z-index:9999;max-width:320px;' +
+    'font-family:DM Mono,monospace;letter-spacing:.05em;';
+  div.innerHTML = '⚠ Almacenamiento local casi lleno. Considera exportar datos antiguos antes de continuar.' +
+    '<button onclick="this.parentElement.remove()" style="margin-left:12px;background:none;border:1px solid rgba(255,255,255,.4);' +
+    'color:#fff;padding:3px 8px;cursor:pointer;font-size:10px;border-radius:1px;">×</button>';
+  document.body.appendChild(div);
+  setTimeout(()=>{ if(div.parentElement) div.remove(); }, 8000);
+}
+
+function getStorageUsage(){
+  let total = 0;
+  try {
+    for(let k in localStorage){
+      if(localStorage.hasOwnProperty(k)) total += localStorage[k].length + k.length;
+    }
+  } catch(e){}
+  return (total * 2 / 1024).toFixed(1); // bytes → KB approx
+}
+
+// ── Migrate from old keys if upgrading ──
+function migrateDB(){
+  // v2 migration: convert stored totals from gross to net (÷1.23)
+  const storedVer = parseInt(localStorage.getItem('satori_db_ver') || '1');
+  if(storedVer < 2){
+    try {
+      const dias = load(DB_KEYS.dias, {});
+      let changed = false;
+      Object.values(dias).forEach(dia => {
+        Object.values(dia.saloneros || {}).forEach(sal => {
+          // Only migrate if total looks gross (beb+com ≈ total within 1%)
+          if(sal.total > 0 && sal.beb > 0 && sal.com > 0){
+            const sumBC = sal.beb + sal.com;
+            const ratio = sumBC / sal.total;
+            if(ratio > 0.98 && ratio < 1.02){ // beb+com ≈ total → gross values
+              sal.total = Math.round(sal.total / 1.23 * 100) / 100;
+              sal.promPax   = sal.pax  ? sal.total / sal.pax  : 0;
+              changed = true;
+            }
+          }
+        });
+      });
+      if(changed){ save(DB_KEYS.dias, dias); console.log('Satori v2 migration: totals converted to net'); }
+      localStorage.setItem('satori_db_ver', 2);
+    } catch(e){ console.error('v2 migration error', e); }
+  }
+  const ver = load(DB_KEYS.ver, 0);
+  if(ver < DB_VERSION){
+    // v0 → v1: rename keys
+    const oldDias = load('satori_dias', null);
+    const oldComps = load('satori_comps', null);
+    if(oldDias) { save(DB_KEYS.dias, oldDias); localStorage.removeItem('satori_dias'); }
+    if(oldComps) { save(DB_KEYS.comps, oldComps); localStorage.removeItem('satori_comps'); }
+    save(DB_KEYS.ver, DB_VERSION);
+  }
+  // Always sanitize: round all PAX, iCom, iBeb to integers (fix float parsing bug)
+  sanitizeStoredData();
+}
+
+function sanitizeStoredData(){
+  const dias = load(DB_KEYS.dias, {});
+  let changed = false;
+  Object.values(dias).forEach(dia => {
+    Object.values(dia.saloneros || {}).forEach(sal => {
+      const roundFields = ['pax','iCom','iBeb'];
+      roundFields.forEach(f => {
+        if(sal[f] !== undefined && sal[f] !== Math.round(sal[f])){
+          sal[f] = Math.round(sal[f]);
+          changed = true;
+        }
+      });
+      // Recalculate derived fields if pax changed
+      if(changed && sal.pax){
+        sal.promPax  = sal.total / sal.pax;
+        sal.promPlato  = sal.iCom ? sal.com / sal.iCom : 0;
+        sal.promBebida = sal.iBeb ? sal.beb / sal.iBeb : 0;
+        sal.ratioCB    = sal.beb  ? sal.com / sal.beb  : 0;
+        sal.ratioU     = sal.iBeb ? sal.iCom / sal.iBeb : 0;
+        sal.bebPax     = sal.pax  ? sal.iBeb / sal.pax  : 0;
+      }
+    });
+  });
+  if(changed){
+    save(DB_KEYS.dias, dias);
+    console.log('Satori: PAX sanitized — rounded float values to integers in stored data');
+  }
+}
+migrateDB();
+
+// dias: { "2025-03-09": { saloneros:{...}, uploadedAt, fileName } }
+let DIAS = load(DB_KEYS.dias, {});
+let COMPS = load(DB_KEYS.comps, []);
+rebuildAllSals(); // construir lista dinámica desde datos guardados
+
+function saveDias(){
+  save(DB_KEYS.dias, DIAS);
+  updateStorageBadge();
+  // Cloud push handled per-day by saveDiaOne after XLS upload
+}
+async function saveComps(){
+  save(DB_KEYS.comps, COMPS);
+  if(BACKEND_URL) apiPost({ action:'saveComps', data: JSON.stringify(COMPS) });
+}
+
+function updateStorageBadge(){
+  try {
+    const badge = document.getElementById('storage-badge');
+    if(badge) badge.textContent = getStorageUsage() + ' KB';
+  } catch(e){}
+}
+
+// ── Demo data (el día del XLS que ya tenemos) ──
+if (!DIAS['2025-03-09']) {
+  DIAS['2025-03-09'] = {
+    fileName: 'salon_09_03.xls',
+    uploadedAt: '2025-03-09',
+    saloneros: {
+      'Dolores': { pax:30, total:559318.06, com:422134.93, beb:137183.13, iCom:54, iBeb:37,
+        promPax:18643.94, promPlato:7817.31, promBebida:3707.65,
+        prods:[ ['CRISPY TUNA BITES',6,30022],['RAINBOW ROLL',4,28872],['POLLO TERIYAKI',3,26527],['SATORI ROLL',3,22447],['TAKO ROLL',3,21438] ]},
+      'Rocio':   { pax:17, total:351688.35, com:257755.77, beb:93932.58, iCom:32, iBeb:28,
+        promPax:20687.55, promPlato:8054.87, promBebida:3354.74,
+        prods:[ ['GIN AND JAM',7,27876],['CRISPY TUNA BITES',5,26106],['SUBARASHI',3,23628],['SATORI ROLL',2,15752],['NAMATSUKE ROLL',2,15575] ]},
+      'Jaime':   { pax:9, total:194840.71, com:135017.00, beb:59823.71, iCom:16, iBeb:7,
+        promPax:21648.97, promPlato:8438.56, promBebida:8546.24,
+        prods:[ ['BOTELLA PIPA SAUV BLANC',1,19204],['SUBARASHI',2,14965],['RAMEN KARI',1,11416],['CEVICHE PERUANO',1,10442],['CRISPY TUNA BITES',2,9920] ]},
+      'Melani':  { pax:4, total:44410.64, com:32219.49, beb:12191.15, iCom:6, iBeb:5,
+        promPax:11102.66, promPlato:5369.91, promBebida:2438.23,
+        prods:[ ['SOPA MISO',2,6903],['GINGER MINT LEMONADE',2,5841],['BOWL TERIYAKI LUNCH',1,5310],['CASADO SATORI',1,4867],['SAKURA POKE',1,4867] ]},
+      'Nacho':   { pax:2, total:19402.44, com:13388.50, beb:6013.94, iCom:2, iBeb:1,
+        promPax:9701.22, promPlato:6694.25, promBebida:6013.94,
+        prods:[ ['THE SNAPPER ROLL',1,7434],['NEGRONI',1,4889],['SOPA MISO',1,3451] ]},
+    }
+  };
+  saveDias();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// LOGIN
+// ═══════════════════════════════════════════════════════════════
+function buildLogin(){
+  const grid = document.getElementById('login-grid');
+  grid.innerHTML = '';
+  ALL_SALS.forEach(name => {
+    const btn = document.createElement('button');
+    btn.className = 'login-btn';
+    btn.textContent = name;
+    btn.onclick = () => enterSalonero(name);
+    grid.appendChild(btn);
+  });
+}
+
+function enterManager(){
+  console.log('enterManager called');
+  MODE = 'manager'; CURRENT_USER = 'Manager';
+  showApp();
+}
+function enterSalonero(name){
+  MODE = 'salonero'; CURRENT_USER = name;
+  showApp();
+}
+function exitToLogin(){
+  document.getElementById('screen-app').classList.remove('active');
+  document.getElementById('screen-login').classList.add('active');
+  MODE = null; CURRENT_USER = null;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// APP SHELL
+// ═══════════════════════════════════════════════════════════════
+function showApp(){
+  console.log('showApp called, MODE=', MODE);
+  document.getElementById('screen-login').classList.remove('active');
+  document.getElementById('screen-app').classList.add('active');
+  document.getElementById('header-user').textContent = CURRENT_USER;
+  const badge = document.getElementById('mode-badge');
+  badge.textContent = MODE === 'manager' ? 'MANAGER' : 'SALONERO';
+  badge.className = 'logo-mode' + (MODE==='salonero'?' sal':'');
+  buildNav();
+  buildViews();
+  activateTab(0);
+  setTimeout(updateStorageBadge, 100);
+}
+
+const MANAGER_TABS = [
+  {id:'resumen',    label:'Resumen'},
+  {id:'historico',  label:'Histórico'},
+  {id:'saloneros',  label:'Por Salonero'},
+  {id:'semana',     label:'📅 Por Día'},
+  {id:'xls',        label:'📂 Subir XLS'},
+  {id:'competencias',label:'🏆 Competencias'},
+];
+const SAL_TABS = [
+  {id:'mi-dia',         label:'Mi día'},
+  {id:'mi-historial',   label:'Mi historial'},
+  {id:'mi-semana',      label:'📅 Mi semana'},
+  {id:'mis-competencias',label:'🏆 Mis competencias'},
+];
+
+function buildNav(){
+  const nav = document.getElementById('nav-tabs');
+  const tabs = MODE==='manager' ? MANAGER_TABS : SAL_TABS;
+  nav.innerHTML = tabs.map((t,i) =>
+    `<div class="ntab${t.id==='competencias'||t.id==='mis-competencias'?' gold':''}" data-id="${t.id}"
+      onclick="activateTab(${i})" id="ntab-${i}">${t.label}</div>`
+  ).join('');
+}
+
+function buildViews(){
+  const main = document.getElementById('main-views');
+  main.innerHTML = '';
+  const tabs = MODE==='manager' ? MANAGER_TABS : SAL_TABS;
+  tabs.forEach(t => {
+    const div = document.createElement('div');
+    div.className = 'view';
+    div.id = 'view-' + t.id;
+    main.appendChild(div);
+  });
+}
+
+function activateTab(i){
+  const tabs = MODE==='manager' ? MANAGER_TABS : SAL_TABS;
+  document.querySelectorAll('.ntab').forEach((t,j) => t.classList.toggle('active', j===i));
+  document.querySelectorAll('.view').forEach((v,j) => {
+    v.classList.toggle('active', j===i);
+    if(j===i) renderView(tabs[j].id);
+  });
+}
+
+function renderView(id){
+  const el = document.getElementById('view-' + id);
+  if(!el) return;
+  if(id==='resumen') renderResumen(el);
+  else if(id==='historico') renderHistorico(el);
+  else if(id==='saloneros') renderSalonerosView(el);
+  else if(id==='xls') renderXLS(el);
+  else if(id==='semana') renderSemana(el);
+  else if(id==='competencias') renderCompetencias(el);
+  else if(id==='mi-dia') renderMiDia(el);
+  else if(id==='mi-historial') renderMiHistorial(el);
+  else if(id==='mi-semana') renderMiSemana(el);
+  else if(id==='mis-competencias') renderMisCompetencias(el);
+  requestAnimationFrame(fitKpiVals);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════════
+
+function fmtRatio(r){
+  if(!r) return '—';
+  const s = r.toFixed(2)+':1';
+  const cls = r>=2.5&&r<=4.5 ? 'ratio-ok' : r<2.5 ? 'ratio-low' : 'ratio-high';
+  return `<span class="${cls}">${s}</span>`;
+}
+function fmtRatioU(r){
+  if(!r) return '—';
+  const s = r.toFixed(1)+':1';
+  const cls = r>=1.5&&r<=3.5 ? 'ratio-ok' : r<1.5 ? 'ratio-low' : 'ratio-high';
+  return `<span class="${cls}">${s}</span>`;
+}
+function fmtBebPax(bebPax){
+  if(!bebPax) return '—';
+  const s = bebPax.toFixed(2);
+  const cls = bebPax>=1.2 ? 'ratio-ok' : bebPax>=0.8 ? 'ratio-mid' : 'ratio-low';
+  const emoji = bebPax>=1.2 ? '🟢' : bebPax>=0.8 ? '🟡' : '🔴';
+  return `<span class="${cls}">${emoji} ${s}</span>`;
+}
+function fmtBothRatios(cb, u){
+  const cbStr = cb ? fmtRatio(cb) : '—';
+  const uStr  = u  ? fmtRatioU(u) : '—';
+  return `<div style="line-height:1.7"><div><small style="opacity:.55">₡ </small>${cbStr}</div><div><small style="opacity:.55">uds </small>${uStr}</div></div>`;
+}
+function fi(n){ return n!=null?'₡'+Math.round(n).toLocaleString('es-CR'):'—'; }
+function pct(a,b){ if(!b) return null; return ((a-b)/b*100).toFixed(1); }
+function fmtDate(d){
+  if(!d) return '—';
+  const [y,m,day]=d.split('-');
+  const M=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  return `${parseInt(day)} ${M[parseInt(m)-1]} ${y}`;
+}
+function daysBetween(a,b){ return Math.round((new Date(b)-new Date(a))/(864e5)); }
+function today(){ return new Date().toISOString().slice(0,10); }
+function addDays(d,n){ const dt=new Date(d); dt.setDate(dt.getDate()+n); return dt.toISOString().slice(0,10); }
+
+// Get sorted date keys
+function getDates(){ return Object.keys(DIAS).sort(); }
+
+// Get dates in range [from, to]
+function getDatesInRange(from, to){
+  return getDates().filter(d => d >= from && d <= to);
+}
+
+// Aggregate salonero data across multiple dates
+function aggSalonero(name, dates){
+  let total=0, com=0, beb=0, pax=0, iCom=0, iBeb=0, days=0;
+  dates.forEach(d => {
+    const s = DIAS[d]?.saloneros?.[name];
+    if(!s) return;
+    total+=s.total||0; com+=s.com||0; beb+=s.beb||0;
+    pax+=s.pax||0; iCom+=s.iCom||0; iBeb+=s.iBeb||0; days++;
+  });
+  return {
+    total, com, beb, pax, iCom, iBeb, days,
+    promPax: pax ? total/pax : 0,
+    promPlato: iCom ? com/iCom : 0,
+    promBebida: iBeb ? beb/iBeb : 0,
+    ratioCB: beb ? (com/beb) : 0,
+    ratioU: iBeb ? (iCom/iBeb) : 0,
+    bebPax: pax ? (iBeb/pax) : 0,
+  };
+}
+
+// Aggregate all saloneros for a set of dates → general metrics
+function aggGeneral(dates){
+  let total=0, com=0, beb=0, pax=0, iCom=0, iBeb=0;
+  dates.forEach(d => {
+    const day = DIAS[d];
+    if(!day) return;
+    Object.values(day.saloneros||{}).forEach(s => {
+      total+=s.total||0; com+=s.com||0; beb+=s.beb||0;
+      pax+=s.pax||0; iCom+=s.iCom||0; iBeb+=s.iBeb||0;
+    });
+  });
+  return { total, com, beb, pax, iCom, iBeb,
+    promPax: pax?total/pax:0,
+    promPlato: iCom?com/iCom:0,
+    promBebida: iBeb?beb/iBeb:0,
+    ratioCB: beb?(com/beb):0,
+    ratioU: iBeb?(iCom/iBeb):0,
+    bebPax: pax?(iBeb/pax):0,
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DATE RANGE BAR
+// ═══════════════════════════════════════════════════════════════
+function makeRangeBar(fromId, toId, onApply){
+  const dates = getDates();
+  const first = dates[0] || today();
+  const last  = dates[dates.length-1] || today();
+
+  const wrap = document.createElement('div');
+  wrap.className = 'range-bar';
+  wrap.innerHTML = `
+    <label>Desde</label>
+    <input class="range-input" type="date" id="${fromId}" value="${first}">
+    <span class="range-sep">→</span>
+    <label>Hasta</label>
+    <input class="range-input" type="date" id="${toId}" value="${last}">
+    <button class="range-preset" onclick="setPreset('${fromId}','${toId}',7,this,arguments[0])">7d</button>
+    <button class="range-preset" onclick="setPreset('${fromId}','${toId}',14,this,arguments[0])">15d</button>
+    <button class="range-preset" onclick="setPreset('${fromId}','${toId}',30,this,arguments[0])">30d</button>
+    <button class="range-preset" onclick="setPreset('${fromId}','${toId}',0,this,arguments[0])">Todo</button>
+    <button class="btn-primary" style="padding:7px 18px;font-size:9px" onclick="${onApply}">Aplicar</button>
+  `;
+  return wrap;
+}
+
+function setPreset(fromId, toId, days, btn, e){
+  e && e.stopPropagation();
+  const dates = getDates();
+  const last = dates[dates.length-1] || today();
+  document.getElementById(toId).value = last;
+  if(days===0) document.getElementById(fromId).value = dates[0]||today();
+  else document.getElementById(fromId).value = addDays(last, -days+1);
+  document.querySelectorAll('.range-preset').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RESUMEN (último día disponible)
+// ═══════════════════════════════════════════════════════════════
+function renderResumen(el){
+  const dates = getDates();
+  if(!dates.length){
+    el.innerHTML = emptyState('📂','Sin datos','Sube el primer XLS en la pestaña "Subir XLS"');
+    return;
+  }
+  const lastDate = dates[dates.length-1];
+  const prevDate = dates.length>1 ? dates[dates.length-2] : null;
+  const gen = aggGeneral([lastDate]);
+  const genPrev = prevDate ? aggGeneral([prevDate]) : null;
+
+  const deltaStr = (cur, prev, prefix='') => {
+    if(!prev) return '';
+    const d = pct(cur, prev);
+    const cls = d>0?'up':d<0?'down':'flat';
+    const sign = d>0?'▲':d<0?'▼':'';
+    return `<div class="kpi-delta ${cls}">${sign} ${Math.abs(d)}% vs día anterior</div>`;
+  };
+
+  el.innerHTML = `
+    <div class="sl">Resumen · ${fmtDate(lastDate)}</div>
+    <div class="kpi-grid">
+      <div class="kpi red">
+        <div class="kpi-label">Ventas Totales</div>
+        <div class="kpi-val">${fi(gen.total)}</div>
+        ${deltaStr(gen.total, genPrev?.total)}
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">PAX ticket (real)</div>
+        <div class="kpi-val">${gen.pax}</div>
+        ${deltaStr(gen.pax, genPrev?.pax)}
+      </div>
+      <div class="kpi green">
+        <div class="kpi-label">Prom / PAX</div>
+        <div class="kpi-val">${fi(gen.promPax)}</div>
+        ${deltaStr(gen.promPax, genPrev?.promPax)}
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Ventas Comidas</div>
+        <div class="kpi-val">${fi(gen.com)}</div>
+        <div class="kpi-sub">${gen.iCom} platos</div>
+      </div>
+      <div class="kpi blue">
+        <div class="kpi-label">Ventas Bebidas</div>
+        <div class="kpi-val">${fi(gen.beb)}</div>
+        <div class="kpi-sub">${gen.iBeb} bebidas</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Prom / Plato</div>
+        <div class="kpi-val">${fi(gen.promPlato)}</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Beb / PAX</div>
+        <div class="kpi-val" style="font-size:22px">${fmtBebPax(gen.bebPax)}</div>
+        </div><div class="kpi"><div class="kpi-label">Ratio Comida / Bebida</div>
+        <div class="kpi-val" style="font-size:18px">${fmtBothRatios(gen.ratioCB, gen.ratioU)}</div>
+        <div class="kpi-sub">ideal 2.5–4.5 · comidas ÷ bebidas</div>
+      </div>
+    </div>
+    <div class="sl">Por salonero · ${fmtDate(lastDate)}</div>
+  `;
+
+  // Ranking table — sortable
+  const sal_raw = ALL_SALS
+    .map(n => ({ n, ...aggSalonero(n,[lastDate]) }))
+    .filter(s => s.total > 0 && s.pax > 0);
+
+  // Sort state: persisted in closure
+  if(typeof renderResumen._sortKey === 'undefined'){
+    renderResumen._sortKey = 'promPax';
+  }
+
+  function buildRankingTable(sortKey){
+    renderResumen._sortKey = sortKey;
+    const sorted = [...sal_raw].sort((a,b) => b[sortKey] - a[sortKey]);
+    const maxVal = sorted[0]?.[sortKey] || 1;
+
+    const cols = [
+      { key: null,       label: '#' },
+      { key: null,       label: 'Salonero' },
+      { key: 'pax',      label: 'PAX' },
+      { key: 'total',    label: 'Ventas Totales' },
+      { key: 'promPax',  label: 'Prom/PAX' },
+      { key: 'bebPax',   label: 'Beb/PAX' },
+      { key: null,       label: 'Ratio C/B<br><small style="font-weight:400;opacity:.7">₡ / uds</small>' },
+      { key: null,       label: 'vs General' },
+      { key: null,       label: 'vs Mejor', style: 'min-width:80px' },
+    ];
+
+    const existingTbl = el.querySelector('table.rt');
+    if(existingTbl) existingTbl.remove();
+
+    const tbl = document.createElement('table');
+    tbl.className = 'rt';
+
+    const headRow = cols.map(c => {
+      const active = c.key && c.key === sortKey ? ' sort-active' : '';
+      const sortable = c.key ? ' sortable' : '';
+      const arrow = c.key ? `<span class="sort-arrow">${c.key===sortKey?'▼':'⇅'}</span>` : '';
+      const style = c.style ? ` style="${c.style}"` : '';
+      const click = c.key ? ` onclick="buildRankingTable('${c.key}')"` : '';
+      return `<th class="${sortable}${active}"${style}${click}>${c.label}${arrow}</th>`;
+    }).join('');
+    tbl.innerHTML = `<thead><tr>${headRow}</tr></thead>`;
+
+    const tbody = document.createElement('tbody');
+    sorted.forEach((s,i) => {
+      const above = s.promPax >= gen.promPax;
+      const diff = Math.abs(s.promPax - gen.promPax);
+      const pctBar = (s[sortKey]/maxVal*100).toFixed(1);
+      const pos = i+1;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><div class="rank-pos ${pos<4?'p'+pos:''}">${pos}</div></td>
+        <td><div class="td-name">${s.n}</div></td>
+        <td class="num">${s.pax}</td>
+        <td style="font-weight:700;color:var(--red)">${fi(s.total)}</td>
+        <td style="font-weight:700">${fi(s.promPax)}</td>
+        <td>${fmtBebPax(s.bebPax)}</td>
+        <td>${fmtBothRatios(s.ratioCB, s.ratioU)}</td>
+        <td><span class="badge badge-${above?'up':'down'}">${above?'▲':'▼'} ${fi(diff)}</span></td>
+        <td><div class="bar-mini" style="width:${pctBar}%"></div><div style="font-size:9px;color:var(--muted);margin-top:3px">${pctBar}%</div></td>
+      `;
+      tbody.appendChild(tr);
+    });
+    tbl.appendChild(tbody);
+    el.appendChild(tbl);
+    requestAnimationFrame(fitKpiVals);
+  }
+
+  // Make buildRankingTable accessible from onclick
+  window.buildRankingTable = buildRankingTable;
+  buildRankingTable(renderResumen._sortKey);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// HISTÓRICO + GRÁFICO CRYPTO
+// ═══════════════════════════════════════════════════════════════
+function renderHistorico(el){
+  el.innerHTML = '';
+  const bar = makeRangeBar('hist-from','hist-to','applyHistorico()');
+  el.appendChild(bar);
+
+  const container = document.createElement('div');
+  container.id = 'hist-container';
+  el.appendChild(container);
+  applyHistorico();
+}
+
+function applyHistorico(){
+  const from = document.getElementById('hist-from')?.value;
+  const to   = document.getElementById('hist-to')?.value;
+  const dates = getDatesInRange(from||'2000-01-01', to||'2099-01-01');
+  const el = document.getElementById('hist-container');
+  if(!el) return;
+
+  if(!dates.length){
+    el.innerHTML = emptyState('📅','Sin datos en ese rango','Prueba un rango más amplio o sube más archivos XLS');
+    return;
+  }
+
+  const gen = aggGeneral(dates);
+  const lastDate = dates[dates.length-1];
+  const prevDate = dates.length>1 ? dates[dates.length-2] : null;
+  const genLast = aggGeneral([lastDate]);
+  const genPrev = prevDate ? aggGeneral([prevDate]) : null;
+
+  // KPIs
+  let kpiHtml = `<div class="kpi-grid" style="margin-bottom:28px">
+    <div class="kpi red"><div class="kpi-label">Ventas Totales</div><div class="kpi-val">${fi(gen.total)}</div><div class="kpi-sub">${dates.length} días</div></div>
+    <div class="kpi"><div class="kpi-label">PAX Totales</div><div class="kpi-val">${gen.pax}</div></div>
+    <div class="kpi green"><div class="kpi-label">Prom/PAX promedio</div><div class="kpi-val">${fi(gen.promPax)}</div></div>
+    <div class="kpi"><div class="kpi-label">Ventas Comidas</div><div class="kpi-val">${fi(gen.com)}</div></div>
+    <div class="kpi blue"><div class="kpi-label">Ventas Bebidas</div><div class="kpi-val">${fi(gen.beb)}</div></div>
+    <div class="kpi"><div class="kpi-label">Prom/Plato promedio</div><div class="kpi-val">${fi(gen.promPlato)}</div></div>
+    <div class="kpi"><div class="kpi-label">Ratio Comida/Bebida</div><div class="kpi-val" style="font-size:18px">${fmtBothRatios(gen.ratioCB, gen.ratioU)}</div><div class="kpi-sub">₡ ideal 2.5–4.5 · uds ideal 1.5–3.5</div></div>
+  </div>`;
+
+  el.innerHTML = kpiHtml;
+
+  // Chart
+  const chartWrap = document.createElement('div');
+  chartWrap.className = 'chart-wrap';
+
+  const lastPP = genLast.promPax;
+  const prevPP = genPrev?.promPax;
+  const delta = prevPP ? pct(lastPP, prevPP) : null;
+  const deltaClass = !delta ? 'flat' : delta>0?'up':'down';
+  const deltaSign = !delta ? '' : delta>0?'▲ ':'▼ ';
+
+  chartWrap.innerHTML = `
+    <div class="chart-header">
+      <div>
+        <div class="chart-title">Ticket promedio / PAX</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:4px">Evolución diaria · base item PAX ticket</div>
+      </div>
+      <div class="chart-meta">
+        <div class="chart-current">${fi(lastPP)}</div>
+        ${delta!==null?`<div class="chart-pct ${deltaClass}">${deltaSign}${Math.abs(delta)}%</div>`:''}
+      </div>
+    </div>
+    <div class="chart-legend" id="chart-legend"></div>
+    <canvas id="chart-canvas" height="220"></canvas>
+    <div id="chart-tooltip" style="display:none;position:absolute;background:var(--ink);color:#f0ece4;
+      padding:10px 14px;border-radius:2px;font-size:10px;pointer-events:none;z-index:10;min-width:140px;"></div>
+  `;
+  el.appendChild(chartWrap);
+
+  // Build chart data — colores dinámicos para cualquier salonero
+  const PALETTE = ['#c23b22','#4a7c59','#2a4a6b','#b09060','#7a5c8a','#3a8a8a','#a05020','#506090','#608030','#904060'];
+  const seriesData = {};
+  const colors = { General:'#c8a96e' };
+  ALL_SALS.forEach((name,i) => { colors[name] = PALETTE[i % PALETTE.length]; });
+
+  ALL_SALS.forEach(name => {
+    seriesData[name] = dates.map(d => {
+      const s = DIAS[d]?.saloneros?.[name];
+      return s?.pax ? s.total/s.pax : null;
+    });
+  });
+  seriesData['General'] = dates.map(d => {
+    const g = aggGeneral([d]);
+    return g.pax ? g.promPax : null;
+  });
+
+  // Legend
+  const legend = chartWrap.querySelector('#chart-legend');
+  const visibleLines = {};
+  Object.keys(colors).forEach(name => {
+    visibleLines[name] = true;
+    const item = document.createElement('div');
+    item.className = 'legend-item';
+    item.id = 'leg-'+name;
+    item.innerHTML = `<div class="legend-dot" style="background:${colors[name]}"></div><span>${name}</span>`;
+    item.onclick = () => {
+      visibleLines[name] = !visibleLines[name];
+      item.style.opacity = visibleLines[name] ? '1' : '0.35';
+      drawChart(canvas, dates, seriesData, colors, visibleLines, chartWrap);
+    };
+    legend.appendChild(item);
+  });
+
+  const canvas = chartWrap.querySelector('#chart-canvas');
+  setTimeout(() => drawChart(canvas, dates, seriesData, colors, visibleLines, chartWrap), 50);
+}
+
+function drawChart(canvas, dates, seriesData, colors, visibleLines, wrap){
+  const W = canvas.offsetWidth;
+  const H = 220;
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  const PAD = {t:16, r:20, b:40, l:70};
+  const CW = W - PAD.l - PAD.r;
+  const CH = H - PAD.t - PAD.b;
+
+  // Gather all visible values to determine Y range
+  let allVals = [];
+  Object.entries(seriesData).forEach(([name, vals]) => {
+    if(!visibleLines[name]) return;
+    vals.forEach(v => { if(v!=null) allVals.push(v); });
+  });
+  if(!allVals.length){ ctx.clearRect(0,0,W,H); return; }
+  const minV = Math.min(...allVals) * 0.88;
+  const maxV = Math.max(...allVals) * 1.06;
+  const range = maxV - minV || 1;
+
+  const xPos = (i) => PAD.l + (dates.length<2 ? CW/2 : i/(dates.length-1)*CW);
+  const yPos = (v) => PAD.t + CH - ((v - minV)/range)*CH;
+
+  ctx.clearRect(0,0,W,H);
+
+  // Grid lines
+  const ticks = 5;
+  ctx.strokeStyle = '#e8e2d8';
+  ctx.lineWidth = 1;
+  for(let i=0;i<=ticks;i++){
+    const y = PAD.t + i*(CH/ticks);
+    ctx.beginPath(); ctx.moveTo(PAD.l, y); ctx.lineTo(PAD.l+CW, y); ctx.stroke();
+    const val = maxV - i*(range/ticks);
+    ctx.fillStyle = '#8a8070';
+    ctx.font = '9px DM Mono';
+    ctx.textAlign = 'right';
+    ctx.fillText('₡'+Math.round(val/1000)+'k', PAD.l-6, y+3);
+  }
+
+  // X axis labels
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#8a8070';
+  const maxLabels = Math.floor(CW/60);
+  const step = Math.max(1, Math.ceil(dates.length/maxLabels));
+  dates.forEach((d,i) => {
+    if(i % step !== 0 && i !== dates.length-1) return;
+    const [,m,day] = d.split('-');
+    const M=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    ctx.fillText(`${parseInt(day)} ${M[parseInt(m)-1]}`, xPos(i), H-PAD.b+14);
+  });
+
+  // Draw each series
+  Object.entries(seriesData).forEach(([name, vals]) => {
+    if(!visibleLines[name]) return;
+    const color = colors[name];
+    const isGen = name === 'General';
+
+    // Collect valid points
+    const pts = vals.map((v,i) => v!=null ? {x:xPos(i), y:yPos(v), v} : null);
+
+    // Draw gradient fill for General
+    if(isGen){
+      const valid = pts.filter(Boolean);
+      if(valid.length < 2) return;
+      const grad = ctx.createLinearGradient(0, PAD.t, 0, PAD.t+CH);
+      grad.addColorStop(0, color+'44');
+      grad.addColorStop(1, color+'08');
+      ctx.beginPath();
+      ctx.moveTo(valid[0].x, PAD.t+CH);
+      ctx.lineTo(valid[0].x, valid[0].y);
+      valid.forEach(p => ctx.lineTo(p.x, p.y));
+      ctx.lineTo(valid[valid.length-1].x, PAD.t+CH);
+      ctx.closePath();
+      ctx.fillStyle = grad;
+      ctx.fill();
+    }
+
+    // Draw line (skip null segments)
+    ctx.beginPath();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = isGen ? 2.5 : 1.5;
+    ctx.setLineDash(isGen ? [] : [4,3]);
+    let started = false;
+    pts.forEach(p => {
+      if(!p){ started=false; return; }
+      if(!started){ ctx.moveTo(p.x,p.y); started=true; }
+      else ctx.lineTo(p.x,p.y);
+    });
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Dots on data points
+    pts.forEach(p => {
+      if(!p) return;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, isGen?4:3, 0, Math.PI*2);
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, isGen?2:1.5, 0, Math.PI*2);
+      ctx.fillStyle = '#fff';
+      ctx.fill();
+    });
+  });
+
+  // Hover
+  const tooltip = wrap.querySelector('#chart-tooltip');
+  canvas.onmousemove = (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    if(dates.length < 2){ tooltip.style.display='none'; return; }
+    const i = Math.round((mx - PAD.l) / CW * (dates.length-1));
+    if(i<0||i>=dates.length){ tooltip.style.display='none'; return; }
+
+    let html = `<div style="color:var(--gold);margin-bottom:6px;font-size:9px;letter-spacing:.15em">${fmtDate(dates[i])}</div>`;
+    Object.entries(seriesData).forEach(([name, vals]) => {
+      if(!visibleLines[name]||vals[i]==null) return;
+      html += `<div style="display:flex;justify-content:space-between;gap:12px;margin-bottom:3px">
+        <span style="color:${colors[name]}">${name}</span>
+        <span style="font-weight:700">${fi(vals[i])}</span>
+      </div>`;
+    });
+    tooltip.innerHTML = html;
+    const tx = Math.min(e.clientX - rect.left + 12, W - 160);
+    const ty = Math.max(e.clientY - rect.top - 10, 4);
+    tooltip.style.left = tx+'px'; tooltip.style.top = ty+'px';
+    tooltip.style.display = 'block';
+    // Draw vertical cursor
+    drawChart(canvas, dates, seriesData, colors, visibleLines, wrap);
+    ctx.beginPath(); ctx.strokeStyle = '#c8a96e44'; ctx.lineWidth=1;
+    ctx.moveTo(xPos(i), PAD.t); ctx.lineTo(xPos(i), PAD.t+CH); ctx.stroke();
+  };
+  canvas.onmouseleave = () => { tooltip.style.display='none'; };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// POR SALONERO (manager view)
+// ═══════════════════════════════════════════════════════════════
+function renderSalonerosView(el){
+  el.innerHTML = '';
+  const bar = makeRangeBar('sal-from','sal-to','applySaloneros()');
+  el.appendChild(bar);
+  const container = document.createElement('div');
+  container.id = 'sal-container';
+  el.appendChild(container);
+  applySaloneros();
+}
+
+function applySaloneros(){
+  const from = document.getElementById('sal-from')?.value;
+  const to   = document.getElementById('sal-to')?.value;
+  const dates = getDatesInRange(from||'2000-01-01', to||'2099-01-01');
+  const el = document.getElementById('sal-container');
+  if(!el) return;
+
+  if(!dates.length){ el.innerHTML = emptyState('📅','Sin datos','Ajusta el rango de fechas'); return; }
+
+  const gen = aggGeneral(dates);
+  const sals = ALL_SALS
+    .map(n => ({ n, ...aggSalonero(n, dates) }))
+    .filter(s => s.total > 0)
+    .sort((a,b) => b.total - a.total);
+
+  if(!sals.length){ el.innerHTML = emptyState('📊','Sin ventas','No hay datos de saloneros en este período'); return; }
+
+  const maxTotal = sals[0].total;
+  const grid = document.createElement('div');
+  grid.className = 'cards-grid';
+
+  sals.forEach((s, i) => {
+    const above = s.promPax >= gen.promPax;
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      <div class="card-head">
+        <div>
+          <div class="card-name">${s.n}</div>
+          <div style="font-size:8px;letter-spacing:.25em;color:#555;margin-top:3px">
+            ${s.days} día${s.days!==1?'s':''}
+            ${i===0?'· 🥇':i===1?'· 🥈':i===2?'· 🥉':''}
+          </div>
+        </div>
+        <div>
+          <div class="card-total">${fi(s.total)}</div>
+          <div style="font-size:8px;color:#666;text-align:right">ventas totales</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="stat"><span class="stat-l">PAX totales</span><span class="stat-r">${s.pax}</span></div>
+        <div class="stat"><span class="stat-l">Prom / PAX</span><span class="stat-r" style="color:var(--red)">${fi(s.promPax)}</span></div>
+        <div class="stat"><span class="stat-l">vs promedio general</span>
+          <span class="stat-r">
+            <span class="badge badge-${above?'up':'down'}">${above?'▲':'▼'} ${fi(Math.abs(s.promPax - gen.promPax))}</span>
+          </span>
+        </div>
+        <div class="stat"><span class="stat-l">Ventas comidas</span><span class="stat-r">${fi(s.com)}</span></div>
+        <div class="stat"><span class="stat-l">Ventas bebidas</span><span class="stat-r">${fi(s.beb)}</span></div>
+        <div class="stat"><span class="stat-l">Prom / plato</span><span class="stat-r">${fi(s.promPlato)}</span></div>
+        <div class="stat"><span class="stat-l">Prom / bebida</span><span class="stat-r">${fi(s.promBebida)}</span></div>
+        <div class="stat"><span class="stat-l">Bebidas / PAX</span><span class="stat-r">${fmtBebPax(s.bebPax)}</span></div>
+        <div class="stat"><span class="stat-l">Ratio C/B (en ₡)</span><span class="stat-r">${fmtRatio(s.ratioCB)}</span></div>
+        <div class="stat"><span class="stat-l">Ratio C/B (unidades)</span><span class="stat-r">${fmtRatioU(s.ratioU)}</span></div>
+        <div style="margin-top:10px">
+          <div style="font-size:8px;letter-spacing:.2em;color:var(--muted);margin-bottom:5px">% del total del período</div>
+          <div style="height:6px;background:var(--border);border-radius:1px;overflow:hidden">
+            <div style="height:100%;background:var(--red);width:${(s.total/maxTotal*100).toFixed(1)}%"></div>
+          </div>
+        </div>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+  el.innerHTML = '';
+  el.appendChild(grid);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// XLS UPLOAD
+// ═══════════════════════════════════════════════════════════════
+function renderXLS(el){
+  const dates = getDates();
+  const isConfigured = !!BACKEND_URL;
+  el.innerHTML = `
+    <div class="sl">Subir reporte de ventas</div>
+  <div style="background:var(--ink);border-radius:2px;padding:18px 22px;margin-bottom:20px;border-left:3px solid ${isConfigured?'var(--green)':'var(--gold)'}">
+    <div style="font-size:8px;letter-spacing:.3em;text-transform:uppercase;color:#555;margin-bottom:10px">&#9729; Google Sheets Backend</div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <input id="backend-url-inp" type="url" placeholder="Pega la URL del Apps Script de Google..."
+        value="${BACKEND_URL}"
+        style="flex:1;min-width:200px;background:#0a0a0a;border:1px solid #2a2a2a;border-radius:2px;padding:8px 12px;color:#f0ece4;font-family:'DM Mono',monospace;font-size:10px;outline:none">
+      <button onclick="saveBackendUrl()" class="btn-sm">Guardar URL</button>
+      <button onclick="syncFromCloud()" class="btn-sm">&#8635; Sincronizar</button>
+    </div>
+    <div style="margin-top:8px;font-size:9px;color:${isConfigured?'#4a7':'#666'}">
+      ${isConfigured ? '✓ Backend configurado · Datos sincronizados en todos los dispositivos' : '⚠ Sin backend · Solo este dispositivo · Configura el Apps Script para activar la nube'}
+    </div>
+  </div>
+  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px;padding:10px 16px;background:var(--panel);border:1px solid var(--border);border-radius:2px;font-size:10px;">
+    <span style="color:var(--muted)">💾 Almacenamiento en este dispositivo:</span>
+    <strong id="xls-storage-info">${getStorageUsage()} KB de ~5 MB disponibles</strong>
+    <span style="color:var(--border)">·</span>
+    <span style="color:var(--muted)">${Object.keys(DIAS).length} reporte(s) guardado(s)</span>
+    <button class="btn-sm" style="margin-left:auto" onclick="exportBackup()">⬇ Exportar backup JSON</button>
+    <button class="btn-sm" onclick="document.getElementById('import-inp').click()">⬆ Importar backup</button>
+    <input type="file" id="import-inp" accept=".json" style="display:none" onchange="importBackup(this)">
+  </div>
+    <div class="upload-zone" id="drop-zone" onclick="document.getElementById('xls-file-inp').click()"
+      ondragover="event.preventDefault();this.classList.add('drag')"
+      ondragleave="this.classList.remove('drag')"
+      ondrop="handleDrop(event)">
+      <div class="upload-icon">📂</div>
+      <div class="upload-title">Arrastra el XLS aquí o haz clic para seleccionar</div>
+      <div class="upload-sub">Archivos .xls · .xlsx · el sistema pedirá la fecha del reporte</div>
+      <input type="file" id="xls-file-inp" accept=".xls,.xlsx" style="display:none"
+        onchange="handleFileSelect(this.files[0])">
+    </div>
+    <div class="sl">Reportes cargados (${dates.length})</div>
+    ${dates.length ? `<div class="upload-list">${dates.map(d => `
+      <div class="upload-row">
+        <div class="upload-dot"></div>
+        <div class="upload-fname">${DIAS[d].fileName || 'reporte'}</div>
+        <div class="upload-date">${fmtDate(d)}</div>
+        <div style="font-size:9px;color:var(--muted)">${Object.keys(DIAS[d].saloneros||{}).length} saloneros</div>
+        <button class="upload-del" onclick="deleteDay('${d}')" title="Eliminar">×</button>
+      </div>`).join('')}</div>`
+    : `<div style="padding:28px;text-align:center;font-size:10px;color:var(--muted)">No hay reportes cargados aún</div>`}
+  `;
+}
+
+function handleDrop(e){
+  e.preventDefault();
+  document.getElementById('drop-zone').classList.remove('drag');
+  const file = e.dataTransfer.files[0];
+  if(file) handleFileSelect(file);
+}
+
+function handleFileSelect(file){
+  if(!file) return;
+  PENDING_FILE = file;
+  const modal = document.getElementById('modal-fecha');
+  document.getElementById('modal-fecha-input').value = today();
+  document.getElementById('modal-overwrite-warn').style.display = 'none';
+  modal.classList.add('open');
+
+  // Check overwrite on date change
+  document.getElementById('modal-fecha-input').oninput = function(){
+    const warn = document.getElementById('modal-overwrite-warn');
+    warn.style.display = DIAS[this.value] ? 'block' : 'none';
+  };
+}
+
+function confirmUpload(){
+  const fecha = document.getElementById('modal-fecha-input').value;
+  if(!fecha){ alert('Selecciona una fecha'); return; }
+  closeModal('modal-fecha');
+  if(!PENDING_FILE){ return; }
+  parseXLS(PENDING_FILE, fecha);
+  PENDING_FILE = null;
+}
+
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+
+function deleteDay(fecha){
+  if(!confirm(`¿Eliminar el reporte del ${fmtDate(fecha)}?`)) return;
+  delete DIAS[fecha];
+  saveDias();
+  renderView('xls');
+}
+
+// ── XLS Parser (BIFF8 / OLE2) ──
+function parseXLS(file, fecha){
+  const reader = new FileReader();
+  reader.onload = function(e){
+    try{
+      const result = parseBIFF8(e.target.result);
+      if(!result || !Object.keys(result).length){
+        alert('No se pudieron extraer datos del archivo. Verifica que sea el formato correcto (XLS de Satori).');
+        return;
+      }
+      DIAS[fecha] = { fileName: file.name, uploadedAt: today(), saloneros: result };
+      saveDias();
+      rebuildAllSals();
+      buildLogin();
+      // Push to cloud
+      saveDiaOne(fecha).then(ok => {
+        showSyncStatus(ok ? '✓ Guardado en la nube' : '⚠ Solo local (sin internet)', !ok, 4000);
+      });
+      // Update competitions
+      updateCompsFromDay(fecha, result);
+      // Refresh current view
+      renderView('xls');
+      alert(`✓ Datos del ${fmtDate(fecha)} cargados correctamente.\n${Object.keys(result).length} saloneros procesados.`);
+    }catch(err){
+      console.error(err);
+      alert('Error al procesar el archivo: ' + err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function parseBIFF8(buffer){
+  const data = new Uint8Array(buffer);
+  function u16(o){ return data[o]|(data[o+1]<<8); }
+  function u32(o){ return data[o]|(data[o+1]<<8)|(data[o+2]<<16)|(data[o+3]<<24); }
+
+  // OLE2 / CFB
+  const secSize = 1 << u16(0x1E);
+  const fatCount = u32(0x2C);
+
+  // Build FAT
+  const fat = [];
+  for(let i=0; i<fatCount; i++){
+    const sec = u32(0x4C + i*4);
+    const off = (sec+1)*secSize;
+    for(let j=0; j<secSize/4; j++) fat.push(u32(off + j*4));
+  }
+
+  function readChain(start){
+    const chunks = [];
+    let sec = start;
+    let guard = 0;
+    while(sec < 0xFFFFFFFE && guard++ < 4096){
+      const off = (sec+1)*secSize;
+      chunks.push(data.slice(off, off+secSize));
+      sec = fat[sec];
+    }
+    const total = chunks.reduce((s,c)=>s+c.length,0);
+    const out = new Uint8Array(total);
+    let pos=0; chunks.forEach(c=>{out.set(c,pos);pos+=c.length;});
+    return out;
+  }
+
+  // Directory
+  const dirSec = u32(0x30);
+  const dir = readChain(dirSec);
+  function du16(o){ return dir[o]|(dir[o+1]<<8); }
+  function du32(o){ return dir[o]|(dir[o+1]<<8)|(dir[o+2]<<16)|(dir[o+3]<<24); }
+
+  let wbStart=-1, wbSize=0;
+  for(let i=0; i*128 < dir.length; i++){
+    const o=i*128;
+    const nlen=du16(o+0x40);
+    let name='';
+    if(nlen>2){ for(let j=0;j<(nlen-2)/2;j++) name+=String.fromCharCode(dir[o+j*2]|(dir[o+j*2+1]<<8)); }
+    const t=dir[o+0x42];
+    const start=du32(o+0x74), size=du32(o+0x78);
+    if((name==='Workbook'||name==='Book')&&t===2){ wbStart=start; wbSize=size; break; }
+  }
+  if(wbStart<0) throw new Error('No se encontró la hoja de cálculo en el archivo');
+
+  const wb = readChain(wbStart).slice(0, wbSize);
+  function wu16(o){ return wb[o]|(wb[o+1]<<8); }
+  function wu32(o){ return wb[o]|(wb[o+1]<<8)|(wb[o+2]<<16)|(wb[o+3]<<24); }
+
+  // SST
+  const sst=[];
+  let pos=0;
+  while(pos < wb.length-4){
+    const rec=wu16(pos), rlen=wu16(pos+2);
+    if(rec===0x00FC){
+      const unique=wu32(pos+8);
+      let p=pos+12;
+      for(let s=0; s<unique; s++){
+        const slen=wu16(p); const flags=wb[p+2]; p+=3;
+        let str='';
+        if(flags&1){ for(let k=0;k<slen;k++){str+=String.fromCharCode(wb[p]|(wb[p+1]<<8));p+=2;} }
+        else{ for(let k=0;k<slen;k++){str+=String.fromCharCode(wb[p]);p++;} }
+        sst.push(str);
+      }
+      break;
+    }
+    pos+=4+rlen;
+  }
+
+  // Cells
+  const rows={};
+  pos=0;
+  while(pos < wb.length-4){
+    const rec=wu16(pos), rlen=wu16(pos+2);
+    if(rec===0x00FD){ // LABELSST
+      const r=wu16(pos+4), c=wu16(pos+6), si=wu32(pos+10);
+      if(!rows[r]) rows[r]={};
+      rows[r][c] = si<sst.length?sst[si]:'';
+    } else if(rec===0x0203){ // NUMBER
+      const r=wu16(pos+4), c=wu16(pos+6);
+      const view=new DataView(wb.buffer, wb.byteOffset+pos+10, 8);
+      const v=view.getFloat64(0,true);
+      if(!rows[r]) rows[r]={};
+      rows[r][c]=Math.round(v*100)/100;
+    } else if(rec===0x027E){ // RK
+      const r=wu16(pos+4), c=wu16(pos+6);
+      const rk=wu32(pos+10);
+      let v;
+      if(rk&2){ v=(rk>>2); } else {
+        const tmp=new Uint8Array(8);
+        const rkv=(rk&0xFFFFFFFC); tmp[4]=rkv&0xFF; tmp[5]=(rkv>>8)&0xFF; tmp[6]=(rkv>>16)&0xFF; tmp[7]=(rkv>>24)&0xFF;
+        v=new DataView(tmp.buffer).getFloat64(0,true);
+      }
+      if(rk&1) v/=100;
+      if(!rows[r]) rows[r]={};
+      rows[r][c]=Math.round(v*100)/100;
+    } else if(rec===0x00BD){ // MULRK
+      const r=wu16(pos+4), firstC=wu16(pos+6);
+      const count=(rlen-2)/6;
+      for(let k=0;k<count;k++){
+        const rk=wu32(pos+10+k*6);
+        let v;
+        if(rk&2){ v=(rk>>2); } else {
+          const tmp=new Uint8Array(8);
+          const rkv=(rk&0xFFFFFFFC); tmp[4]=rkv&0xFF; tmp[5]=(rkv>>8)&0xFF; tmp[6]=(rkv>>16)&0xFF; tmp[7]=(rkv>>24)&0xFF;
+          v=new DataView(tmp.buffer).getFloat64(0,true);
+        }
+        if(rk&1) v/=100;
+        if(!rows[r]) rows[r]={};
+        rows[r][firstC+k]=Math.round(v*100)/100;
+      }
+    }
+    pos+=4+rlen;
+  }
+
+  // Find headers row (row 0)
+  const hdr=rows[0]||{};
+  const COL={};
+  Object.entries(hdr).forEach(([c,v])=>{ if(typeof v==='string') COL[v]=parseInt(c); });
+
+  // Group by salonero (trim names to avoid 'Jota ' != 'Jota')
+  const sal_rows={};
+  Object.entries(rows).forEach(([ri,row])=>{
+    if(parseInt(ri)===0) return;
+    const rawSal=row[COL['Salonero']||0];
+    if(!rawSal||typeof rawSal!=='string') return;
+    const sal=rawSal.trim();
+    if(!sal) return;
+    if(!sal_rows[sal]) sal_rows[sal]={rows:[]};
+    sal_rows[sal].rows.push(row);
+  });
+
+  // Extract per-salonero metrics
+  const result={};
+  Object.entries(sal_rows).forEach(([sal, {rows: srows}])=>{
+    // Get summary columns from first row that has them
+    let pax=0, total=0, com=0, beb=0, iCom=0, iBeb=0;
+    const prodMap={};
+
+    // PAX item + sum IVA and Servicio for net total calculation
+    let sumIVA=0, sumServ=0;
+    srows.forEach(row=>{
+      const prod=(row[COL['Producto']||1]||'').toString().trim().toUpperCase();
+      if(prod==='PAX'){
+        const q=row[COL['Cantidad']||2];
+        if(q && typeof q==='number' && q>0) pax=Math.max(pax, Math.round(q));
+      }
+      const qty=row[COL['Cantidad']||2]||0;
+      const monto=row[COL['MontoTotal']||3]||0;
+      const iva=row[COL['IVA']||4]||0;
+      const serv=row[COL['Servicio']||5]||0;
+      if(typeof iva==='number') sumIVA+=iva;
+      if(typeof serv==='number') sumServ+=serv;
+      if(typeof monto==='number' && monto>0 && prod!=='PAX'){
+        prodMap[prod]=(prodMap[prod]||{q:0,m:0});
+        prodMap[prod].q+=typeof qty==='number'?Math.round(qty):0;
+        prodMap[prod].m+=monto;
+      }
+    });
+
+    // Summary columns — total neto = col O minus IVA and Servicio
+    // beb/com use cols L/M (include taxes) — ratio still valid since same rate for all mesa products
+    srows.forEach(row=>{
+      if(row[COL['VentasTotalesMesero']||14]>0) total=row[COL['VentasTotalesMesero']||14];
+      if(row[COL['VentasComidasMesero']||12]>0) com=row[COL['VentasComidasMesero']||12];
+      if(row[COL['VentasBebidasMesero']||11]>0) beb=row[COL['VentasBebidasMesero']||11];
+      if(row[COL['ComidasMesero']||8]>0) iCom=Math.round(row[COL['ComidasMesero']||8]);
+      if(row[COL['BebidasMesero']||9]>0) iBeb=Math.round(row[COL['BebidasMesero']||9]);
+    });
+    // Subtract taxes from total to get net
+    if(total>0 && (sumIVA+sumServ)>0) total=Math.round((total-sumIVA-sumServ)*100)/100;
+
+    if(!pax || !total) return; // skip cajeros sin PAX o sin total
+
+    const prods=Object.entries(prodMap)
+      .sort((a,b)=>b[1].m-a[1].m)
+      .slice(0,5)
+      .map(([name,{q,m}])=>[name,q,Math.round(m)]);
+
+    result[sal]={
+      pax, total, com, beb, iCom, iBeb,
+      promPax: pax?total/pax:0,
+      promPlato: iCom?com/iCom:0,
+      promBebida: iBeb?beb/iBeb:0,
+      ratioCB: beb?com/beb:0,
+      ratioU: iBeb?iCom/iBeb:0,
+      bebPax: pax?iBeb/pax:0,
+      prods
+    };
+  });
+
+  return result;
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+// POR DÍA DE SEMANA
+// ═══════════════════════════════════════════════════════════════
+function renderSemana(el){
+  el.innerHTML = '';
+  const DAYS = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+  const DAYS_SHORT = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+
+  // Group all stored days by day-of-week
+  const byDow = {}; // { 0: [{date, saloneros}, ...], 1: [...], ... }
+  Object.entries(DIAS).forEach(([date, dia]) => {
+    const dow = new Date(date + 'T12:00:00').getDay();
+    if(!byDow[dow]) byDow[dow] = [];
+    byDow[dow].push({ date, ...dia });
+  });
+
+  if(!Object.keys(byDow).length){
+    el.innerHTML = '<div style="padding:40px;text-align:center;color:#555">No hay datos suficientes aún.<br>Subí más archivos XLS para ver tendencias por día.</div>';
+    return;
+  }
+
+  // Header
+  const header = document.createElement('div');
+  header.className = 'sl-header';
+  header.innerHTML = `<div class="sl">Por Día de Semana · ${Object.keys(DIAS).length} días registrados</div>`;
+  el.appendChild(header);
+
+  // For each day-of-week that has data, build a summary card
+  const dowOrder = [1,2,3,4,5,6,0]; // Mon→Sun
+  const cardsWrap = document.createElement('div');
+  cardsWrap.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-bottom:32px;';
+  el.appendChild(cardsWrap);
+
+  dowOrder.forEach(dow => {
+    const days = byDow[dow];
+    if(!days) return;
+
+    // Aggregate across all occurrences of this weekday
+    let totalVentas=0, totalPax=0, totalCom=0, totalBeb=0, totaliBeb=0, totalDays=days.length;
+    days.forEach(dia => {
+      Object.values(dia.saloneros||{}).forEach(s => {
+        totalVentas += s.total||0;
+        totalPax    += s.pax||0;
+        totalCom    += s.com||0;
+        totalBeb    += s.beb||0;
+        totaliBeb   += s.iBeb||0;
+      });
+    });
+
+    const promPax   = totalPax ? totalVentas/totalPax : 0;
+    const bebPax    = totalPax ? totaliBeb/totalPax : 0;
+    const ratioCB   = totalBeb ? totalCom/totalBeb : 0;
+    const promDia   = totalDays ? totalVentas/totalDays : 0;
+
+    const card = document.createElement('div');
+    card.style.cssText = 'background:var(--ink);border-radius:2px;padding:20px 22px;position:relative;overflow:hidden;';
+    // Gold left border
+    card.innerHTML = `<div style="position:absolute;top:0;left:0;width:3px;height:100%;background:var(--gold)"></div>
+    <div style="font-size:18px;font-weight:800;font-family:'Syne',sans-serif;color:#f0ece4;margin-bottom:2px">${DAYS[dow]}</div>
+    <div style="font-size:9px;letter-spacing:.2em;color:#555;margin-bottom:16px">${totalDays} ${totalDays===1?'día':'días'} registrado${totalDays===1?'':'s'}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px 20px;">
+      <div>
+        <div style="font-size:8px;letter-spacing:.2em;text-transform:uppercase;color:#555;margin-bottom:3px">Venta promedio/día</div>
+        <div style="font-size:16px;font-weight:700;font-family:'Syne',sans-serif;color:var(--red)">${fi(promDia)}</div>
+      </div>
+      <div>
+        <div style="font-size:8px;letter-spacing:.2em;text-transform:uppercase;color:#555;margin-bottom:3px">PAX promedio/día</div>
+        <div style="font-size:16px;font-weight:700;font-family:'Syne',sans-serif;color:#f0ece4">${totalDays?Math.round(totalPax/totalDays):0}</div>
+      </div>
+      <div>
+        <div style="font-size:8px;letter-spacing:.2em;text-transform:uppercase;color:#555;margin-bottom:3px">Prom/PAX</div>
+        <div style="font-size:16px;font-weight:700;font-family:'Syne',sans-serif;color:#f0ece4">${fi(promPax)}</div>
+      </div>
+      <div>
+        <div style="font-size:8px;letter-spacing:.2em;text-transform:uppercase;color:#555;margin-bottom:3px">Beb/PAX</div>
+        <div style="font-size:15px;font-weight:700">${fmtBebPax(bebPax)}</div>
+      </div>
+      <div>
+        <div style="font-size:8px;letter-spacing:.2em;text-transform:uppercase;color:#555;margin-bottom:3px">Ratio C/B</div>
+        <div style="font-size:13px;font-weight:700">${fmtBothRatios(ratioCB,0)}</div>
+      </div>
+    </div>`;
+    cardsWrap.appendChild(card);
+  });
+
+  // ── Ranking por salonero × día de semana ──
+  const secTitle = document.createElement('div');
+  secTitle.innerHTML = '<div class="sl" style="margin-bottom:16px">Rendimiento por salonero × día</div>';
+  el.appendChild(secTitle);
+
+  // Build table: rows = saloneros, cols = days of week
+  const allSalsInData = new Set();
+  Object.values(DIAS).forEach(dia => Object.keys(dia.saloneros||{}).forEach(n => allSalsInData.add(n)));
+  const salsArr = [...allSalsInData].filter(n => !isCajero(n)).sort();
+
+  if(!salsArr.length) return;
+
+  // For each salonero × dow, aggregate promPax
+  const matrix = {}; // { salName: { dow: {promPax, dias} } }
+  salsArr.forEach(sal => {
+    matrix[sal] = {};
+    dowOrder.forEach(dow => {
+      const days = byDow[dow] || [];
+      let vt=0, pax=0, cnt=0;
+      days.forEach(dia => {
+        const s = dia.saloneros?.[sal];
+        if(s && s.pax>0){ vt+=s.total; pax+=s.pax; cnt++; }
+      });
+      if(cnt>0) matrix[sal][dow] = { promPax: vt/pax, dias: cnt, total: vt, pax };
+    });
+  });
+
+  const activeDows = dowOrder.filter(d => byDow[d]);
+
+  const tbl = document.createElement('table');
+  tbl.className = 'rt';
+  tbl.innerHTML = `<thead><tr>
+    <th>Salonero</th>
+    ${activeDows.map(d=>`<th style="text-align:center">${DAYS_SHORT[d]}<br><small style="font-weight:400;opacity:.5">${(byDow[d]||[]).length}×</small></th>`).join('')}
+  </tr></thead>`;
+
+  const tbody = document.createElement('tbody');
+  salsArr.forEach(sal => {
+    const tr = document.createElement('tr');
+    const cells = activeDows.map(dow => {
+      const cell = matrix[sal][dow];
+      if(!cell) return `<td style="text-align:center;color:#333">—</td>`;
+      return `<td style="text-align:center">
+        <div style="font-size:11px;font-weight:700;color:#f0ece4">${fi(cell.promPax)}</div>
+        <div style="font-size:8px;color:#555">${cell.pax} PAX</div>
+      </td>`;
+    }).join('');
+    tr.innerHTML = `<td><div class="td-name">${sal}</div></td>${cells}`;
+    tbody.appendChild(tr);
+  });
+  tbl.appendChild(tbody);
+  el.appendChild(tbl);
+
+  // ── Mini bar chart: ventas promedio por día ──
+  const chartTitle = document.createElement('div');
+  chartTitle.innerHTML = '<div class="sl" style="margin:28px 0 16px">Venta promedio por día (todos los saloneros)</div>';
+  el.appendChild(chartTitle);
+
+  const chartWrap = document.createElement('div');
+  chartWrap.style.cssText = 'display:flex;align-items:flex-end;gap:8px;height:120px;padding:0 4px;';
+
+  const maxPromDia = Math.max(...dowOrder.map(d => {
+    if(!byDow[d]) return 0;
+    let vt=0, cnt=byDow[d].length;
+    byDow[d].forEach(dia => Object.values(dia.saloneros||{}).forEach(s=>vt+=s.total||0));
+    return cnt ? vt/cnt : 0;
+  }));
+
+  dowOrder.forEach(dow => {
+    const days = byDow[dow];
+    const col = document.createElement('div');
+    col.style.cssText = 'flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;';
+    if(!days){
+      col.innerHTML = `<div style="flex:1"></div><div style="font-size:8px;color:#333">${DAYS_SHORT[dow]}</div>`;
+    } else {
+      let vt=0;
+      days.forEach(dia => Object.values(dia.saloneros||{}).forEach(s=>vt+=s.total||0));
+      const avg = vt / days.length;
+      const pct = maxPromDia ? (avg/maxPromDia*100) : 0;
+      col.innerHTML = `
+        <div style="font-size:8px;color:#888;white-space:nowrap">${fi(avg)}</div>
+        <div style="width:100%;height:${Math.max(pct,4).toFixed(0)}px;background:var(--gold);border-radius:1px 1px 0 0;min-height:4px"></div>
+        <div style="font-size:9px;color:#aaa;font-weight:600">${DAYS_SHORT[dow]}</div>
+      `;
+    }
+    chartWrap.appendChild(col);
+  });
+  el.appendChild(chartWrap);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// COMPETENCIAS
+// ═══════════════════════════════════════════════════════════════
+let prodCount=0;
+
+function renderCompetencias(el){
+  el.innerHTML = `
+    <div class="comp-tabs">
+      <div class="comp-tab active" onclick="compTab('activas',this)">Activas</div>
+      <div class="comp-tab" onclick="compTab('nueva',this)">+ Nueva</div>
+    </div>
+    <div class="comp-view active" id="cv-activas"></div>
+    <div class="comp-view" id="cv-nueva">
+      <div class="form-card">
+        <div class="form-title">Nueva competencia</div>
+        <div class="form-row">
+          <div class="form-group" style="flex:2">
+            <label class="form-label">Nombre</label>
+            <input class="form-input" id="cf-nombre" placeholder="Ej: Marzo · Rolls Premium">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Tipo</label>
+            <select class="form-input" id="cf-tipo">
+              <option value="semanal">Semanal</option>
+              <option value="mensual">Mensual</option>
+              <option value="especial">Especial</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Fecha inicio</label>
+            <input class="form-input" type="date" id="cf-inicio">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Fecha fin</label>
+            <input class="form-input" type="date" id="cf-fin">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Premio</label>
+            <input class="form-input" id="cf-premio" placeholder="Ej: ₡25,000 bono">
+          </div>
+        </div>
+        <div class="form-sec">Productos en competencia <span style="font-weight:400">(hasta 5, se rankea por unidades)</span></div>
+        <div id="cf-prods"></div>
+        <button class="btn-add" onclick="addCompProd()">+ Agregar producto</button>
+        <div class="form-sec" style="margin-top:20px">Participantes</div>
+        <div class="checks-grid" id="cf-parts"></div>
+        <div style="margin-top:22px;display:flex;gap:10px">
+          <button class="btn-primary" onclick="saveComp()">Crear competencia</button>
+          <button class="btn-ghost" onclick="compTab('activas',document.querySelector('.comp-tab'))">Cancelar</button>
+        </div>
+        <div class="msg-err" id="cf-err"></div>
+      </div>
+    </div>
+  `;
+  renderActivas();
+  initCompForm();
+}
+
+function compTab(id, btn){
+  document.querySelectorAll('.comp-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.comp-view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('cv-'+id).classList.add('active');
+  btn.classList.add('active');
+  if(id==='activas') renderActivas();
+  if(id==='nueva') initCompForm();
+}
+
+function initCompForm(){
+  prodCount=0;
+  const pd=document.getElementById('cf-prods');
+  if(!pd) return;
+  pd.innerHTML='';
+  addCompProd();
+  const pc=document.getElementById('cf-parts');
+  if(pc){
+    pc.innerHTML='';
+    ALL_SALS.forEach(name=>{
+      const lbl=document.createElement('label');
+      lbl.className='check-item on';
+      lbl.innerHTML=`<input type="checkbox" value="${name}" checked onchange="this.closest('.check-item').classList.toggle('on',this.checked)"> ${name}`;
+      pc.appendChild(lbl);
+    });
+  }
+}
+
+function addCompProd(){
+  const pd=document.getElementById('cf-prods');
+  if(!pd||prodCount>=5) return;
+  prodCount++;
+  const idx=prodCount;
+  const d=document.createElement('div');
+  d.className='prod-row-form';
+  d.id='cprow-'+idx;
+  d.innerHTML=`
+    <div class="prod-idx">${idx}</div>
+    <div style="position:relative;flex:1">
+      <input class="prod-inp" type="text" id="cpinp-${idx}"
+        placeholder="Nombre del producto"
+        oninput="showCompSug(${idx},this.value)"
+        onblur="setTimeout(()=>hideCompSug(${idx}),150)">
+      <div class="sug-box" id="cpsug-${idx}"></div>
+    </div>
+    ${prodCount>1?`<button class="btn-del-row" onclick="delCompProd(${idx})">×</button>`:'<div style="width:26px"></div>'}
+  `;
+  pd.appendChild(d);
+}
+
+function showCompSug(idx,val){
+  const box=document.getElementById('cpsug-'+idx);
+  if(!val||val.length<2){box.style.display='none';return;}
+  const m=PROD_SUGS.filter(p=>p.toLowerCase().includes(val.toLowerCase())).slice(0,6);
+  if(!m.length){box.style.display='none';return;}
+  box.innerHTML=m.map(p=>`<div class="sug-item" onmousedown="selCompSug(${idx},'${p.replace(/'/g,"\\'")}')">
+    ${p.replace(new RegExp(`(${val})`,'gi'),'<strong>$1</strong>')}</div>`).join('');
+  box.style.display='block';
+}
+function selCompSug(idx,val){document.getElementById('cpinp-'+idx).value=val;hideCompSug(idx);}
+function hideCompSug(idx){const b=document.getElementById('cpsug-'+idx);if(b)b.style.display='none';}
+function delCompProd(idx){const e=document.getElementById('cprow-'+idx);if(e)e.remove();prodCount--;}
+
+function saveComp(){
+  const nombre=document.getElementById('cf-nombre').value.trim();
+  const tipo=document.getElementById('cf-tipo').value;
+  const inicio=document.getElementById('cf-inicio').value;
+  const fin=document.getElementById('cf-fin').value;
+  const premio=document.getElementById('cf-premio').value.trim();
+  const errEl=document.getElementById('cf-err');
+
+  if(!nombre){errEl.textContent='El nombre es obligatorio.';errEl.style.display='block';return;}
+  if(!inicio||!fin){errEl.textContent='Las fechas son obligatorias.';errEl.style.display='block';return;}
+  if(fin<inicio){errEl.textContent='La fecha fin debe ser mayor al inicio.';errEl.style.display='block';return;}
+
+  const prods=[];
+  for(let i=1;i<=5;i++){
+    const inp=document.getElementById('cpinp-'+i);
+    if(inp&&inp.value.trim()) prods.push(inp.value.trim().toUpperCase());
+  }
+  if(!prods.length){errEl.textContent='Agrega al menos un producto.';errEl.style.display='block';return;}
+
+  const parts=[...document.querySelectorAll('#cf-parts input:checked')].map(c=>c.value);
+  if(!parts.length){errEl.textContent='Selecciona al menos un salonero.';errEl.style.display='block';return;}
+
+  const comp={id:Date.now(),nombre,tipo,inicio,fin,premio,prods,parts};
+  COMPS.push(comp);
+  saveComps();
+  errEl.style.display='none';
+  // Backfill from existing days
+  getDates().forEach(fecha=>{
+    if(fecha>=inicio&&fecha<=fin){
+      updateCompFromDay(comp, fecha, DIAS[fecha]?.saloneros||{});
+    }
+  });
+  saveComps();
+  compTab('activas',document.querySelector('.comp-tab'));
+}
+
+function renderActivas(){
+  const el=document.getElementById('cv-activas');
+  if(!el) return;
+  if(!COMPS.length){
+    el.innerHTML=emptyState('🏆','Sin competencias activas','Crea una en "+ Nueva"');
+    return;
+  }
+  const today_s=today();
+  el.innerHTML='';
+  COMPS.forEach(comp=>{
+    const card=document.createElement('div');
+    card.className='comp-card';
+    const totalDias=Math.max(1,daysBetween(comp.inicio,comp.fin));
+    const pasados=Math.min(Math.max(daysBetween(comp.inicio,today_s),0),totalDias);
+    const pct_prog=(pasados/totalDias*100).toFixed(0);
+    const estado=today_s>comp.fin?'Finalizada':today_s<comp.inicio?'Próxima':'En curso';
+
+    const ranking=buildCompRanking(comp);
+
+    card.innerHTML=`
+      <div class="comp-head">
+        <div>
+          <div class="comp-name">${comp.nombre}</div>
+          <div style="font-size:9px;color:#555;margin-top:3px">${estado} · ${fmtDate(comp.inicio)} → ${fmtDate(comp.fin)}</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <span class="comp-badge badge-${comp.tipo}">${comp.tipo}</span>
+          ${comp.premio?`<span style="font-size:10px;color:var(--gold)">🏅 ${comp.premio}</span>`:''}
+        </div>
+      </div>
+      <div class="comp-body">
+        <div class="comp-prod-tags">${comp.prods.map(p=>`<span class="prod-tag">📦 ${p}</span>`).join('')}</div>
+        <div style="font-size:9px;color:var(--muted)">Progreso · día ${pasados} de ${totalDias}</div>
+        <div class="progress-bar"><div class="progress-fill" style="width:${pct_prog}%"></div></div>
+        <div style="font-size:9px;color:var(--muted);margin-bottom:14px">${pct_prog}% completado</div>
+        ${renderCompRankingTable(comp, ranking)}
+        <div class="comp-actions">
+          <button class="btn-sm del" onclick="deleteComp(${comp.id})">Eliminar</button>
+        </div>
+      </div>
+    `;
+    el.appendChild(card);
+  });
+}
+
+function buildCompRanking(comp){
+  const data={};
+  comp.parts.forEach(sal=>{ data[sal]={_total:0}; comp.prods.forEach(p=>{data[sal][p]=0;}); });
+  getDates().forEach(fecha=>{
+    if(fecha<comp.inicio||fecha>comp.fin) return;
+    const sals=DIAS[fecha]?.saloneros||{};
+    comp.parts.forEach(sal=>{
+      const salData=sals[sal];
+      if(!salData) return;
+      comp.prods.forEach(p=>{
+        const prodRow=(salData.prods||[]).find(([name])=>name===p);
+        const qty=prodRow?prodRow[1]:0;
+        data[sal][p]=(data[sal][p]||0)+qty;
+        data[sal]._total+=qty;
+      });
+    });
+  });
+  return Object.entries(data)
+    .map(([sal,d])=>({sal,total:d._total,prods:d}))
+    .sort((a,b)=>b.total-a.total);
+}
+
+function updateCompsFromDay(fecha, saloneros){
+  COMPS.forEach(comp=>{
+    if(fecha>=comp.inicio&&fecha<=comp.fin){
+      updateCompFromDay(comp, fecha, saloneros);
+    }
+  });
+  saveComps();
+}
+function updateCompFromDay(comp, fecha, saloneros){ /* data is read live from DIAS */ }
+
+function renderCompRankingTable(comp, ranking){
+  const hasData=ranking.some(r=>r.total>0);
+  if(!hasData) return `<div class="comp-no-data">Sin ventas registradas aún</div>`;
+  const maxU=ranking[0]?.total||1;
+  return `
+    <table class="rank-table">
+      <thead><tr>
+        <th>#</th><th>Salonero</th>
+        ${comp.prods.map(p=>`<th>${p.length>14?p.slice(0,13)+'…':p}</th>`).join('')}
+        <th>Total uds</th>
+      </tr></thead>
+      <tbody>
+      ${ranking.map((r,i)=>{
+        const pos=i+1;
+        const pcls=pos===1?'p1':pos===2?'p2':pos===3?'p3':'';
+        return `<tr>
+          <td><div class="rank-pos ${pcls}">${pos}</div></td>
+          <td><strong>${r.sal}</strong>
+            <div class="rank-bar-wrap"><div class="rank-bar-fill" style="width:${r.total?((r.total/maxU)*100).toFixed(0):0}%"></div></div>
+          </td>
+          ${comp.prods.map(p=>`<td style="text-align:center">${r.prods[p]||'—'}</td>`).join('')}
+          <td style="font-weight:800;font-size:14px;color:var(--red)">${r.total||'—'}</td>
+        </tr>`;
+      }).join('')}
+      </tbody>
+    </table>`;
+}
+
+function deleteComp(id){
+  if(!confirm('¿Eliminar esta competencia?')) return;
+  COMPS=COMPS.filter(c=>c.id!==id);
+  saveComps();
+  renderActivas();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SALONERO VIEWS
+// ═══════════════════════════════════════════════════════════════
+function renderMiDia(el){
+  const dates=getDates();
+  const lastDate=dates[dates.length-1];
+  const name=CURRENT_USER;
+  const sal=lastDate?DIAS[lastDate]?.saloneros?.[name]:null;
+  const gen=lastDate?aggGeneral([lastDate]):null;
+
+  // Rank for last day
+  let rank=1;
+  if(lastDate && DIAS[lastDate]?.saloneros){
+    const sorted=Object.values(DIAS[lastDate].saloneros)
+      .filter(s=>s.total>0)
+      .sort((a,b)=>b.promPax-a.promPax);
+    rank=(sorted.findIndex((_,i,arr)=>{
+      const n_=Object.keys(DIAS[lastDate].saloneros).find(k=>DIAS[lastDate].saloneros[k]===arr[i]);
+      return n_===name;
+    }))+1||rank;
+    rank=Object.keys(DIAS[lastDate].saloneros).sort((a,b)=>
+      (DIAS[lastDate].saloneros[b].promPax||0)-(DIAS[lastDate].saloneros[a].promPax||0)
+    ).indexOf(name)+1||1;
+  }
+
+  el.innerHTML=`
+    <div class="sal-hero">
+      <div>
+        <div class="sal-hero-name">${name}</div>
+        <div class="sal-hero-sub">${lastDate?fmtDate(lastDate):'Sin datos'}</div>
+      </div>
+      <div class="sal-rank-badge">
+        <div class="sal-rank-num">#${rank}</div>
+        <div class="sal-rank-label">ranking del día</div>
+      </div>
+    </div>
+  `;
+
+  if(!sal){
+    el.innerHTML+=emptyState('📂','Sin datos hoy','El manager aún no ha subido el reporte del día');
+    return;
+  }
+
+  const above=gen && sal.promPax>=gen.promPax;
+  el.innerHTML+=`
+    <div class="kpi-grid">
+      <div class="kpi red"><div class="kpi-label">Mis Ventas</div><div class="kpi-val">${fi(sal.total)}</div></div>
+      <div class="kpi"><div class="kpi-label">Mis PAX</div><div class="kpi-val">${sal.pax}</div></div>
+      <div class="kpi ${above?'green':'red'}">
+        <div class="kpi-label">Prom/PAX</div>
+        <div class="kpi-val">${fi(sal.promPax)}</div>
+        ${gen?`<div class="kpi-delta ${above?'up':'down'}">${above?'▲':'▼'} ${fi(Math.abs(sal.promPax-gen.promPax))} vs general (${fi(gen.promPax)})</div>`:''}
+      </div>
+      <div class="kpi"><div class="kpi-label">Comidas</div><div class="kpi-val">${fi(sal.com)}</div><div class="kpi-sub">${sal.iCom} platos</div></div>
+      <div class="kpi blue"><div class="kpi-label">Bebidas</div><div class="kpi-val">${fi(sal.beb)}</div><div class="kpi-sub">${sal.iBeb} bebidas</div></div>
+      <div class="kpi"><div class="kpi-label">Prom/Plato</div><div class="kpi-val">${fi(sal.promPlato)}</div></div>
+      <div class="kpi"><div class="kpi-label">Beb / PAX</div><div class="kpi-val" style="font-size:22px">${fmtBebPax(sal.bebPax)}</div><div class="kpi-sub">ideal ≥ 1.2</div></div><div class="kpi"><div class="kpi-label">Ratio Comida/Bebida</div><div class="kpi-val" style="font-size:18px">${fmtBothRatios(sal.ratioCB||sal.com/Math.max(sal.beb,1), sal.ratioU)}</div><div class="kpi-sub">₡ ideal 2.5–4.5 · uds 1.5–3.5</div></div>
+    </div>
+    <div class="sl">Mis productos top</div>
+    <div style="background:#fff;border:1px solid var(--border);border-radius:2px;overflow:hidden">
+      ${(sal.prods||[]).map(([p,q,m],i)=>`
+        <div class="upload-row" style="gap:14px">
+          <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:var(--border);width:24px">${i+1}</div>
+          <div style="flex:1;font-size:11px">${p}</div>
+          <div style="font-size:10px;color:var(--muted)">${q} uds</div>
+          <div style="font-weight:700;color:var(--red)">${fi(m)}</div>
+        </div>`).join('')}
+    </div>
+  `;
+}
+
+function renderMiHistorial(el){
+  el.innerHTML='';
+  const bar=makeRangeBar('mh-from','mh-to','applyMiHistorial()');
+  el.appendChild(bar);
+  const cont=document.createElement('div');
+  cont.id='mh-container';
+  el.appendChild(cont);
+  applyMiHistorial();
+}
+
+function applyMiHistorial(){
+  const from=document.getElementById('mh-from')?.value;
+  const to=document.getElementById('mh-to')?.value;
+  const dates=getDatesInRange(from||'2000-01-01',to||'2099-01-01');
+  const el=document.getElementById('mh-container');
+  if(!el) return;
+
+  const name=CURRENT_USER;
+  const agg=aggSalonero(name,dates);
+  const gen=aggGeneral(dates);
+
+  if(!agg.total){ el.innerHTML=emptyState('📅','Sin datos en ese rango','Ajusta las fechas o espera a que el manager suba más reportes'); return; }
+
+  el.innerHTML=`
+    <div class="kpi-grid" style="margin-bottom:28px">
+      <div class="kpi red"><div class="kpi-label">Mis Ventas</div><div class="kpi-val">${fi(agg.total)}</div><div class="kpi-sub">${agg.days} días</div></div>
+      <div class="kpi"><div class="kpi-label">PAX totales</div><div class="kpi-val">${agg.pax}</div></div>
+      <div class="kpi green"><div class="kpi-label">Prom/PAX</div><div class="kpi-val">${fi(agg.promPax)}</div></div>
+      <div class="kpi"><div class="kpi-label">Prom/Plato</div><div class="kpi-val">${fi(agg.promPlato)}</div></div>
+      <div class="kpi"><div class="kpi-label">Beb / PAX</div><div class="kpi-val" style="font-size:22px">${fmtBebPax(agg.bebPax)}</div><div class="kpi-sub">ideal ≥ 1.2</div></div><div class="kpi"><div class="kpi-label">Ratio Comida/Bebida</div><div class="kpi-val" style="font-size:18px">${fmtBothRatios(agg.ratioCB, agg.ratioU)}</div><div class="kpi-sub">₡ ideal 2.5–4.5 · uds 1.5–3.5</div></div>
+      <div class="kpi blue"><div class="kpi-label">vs General Prom/PAX</div>
+        <div class="kpi-val">${fi(gen.promPax)}</div>
+        <div class="kpi-delta ${agg.promPax>=gen.promPax?'up':'down'}">${agg.promPax>=gen.promPax?'▲ Por encima':'▼ Por debajo'}</div>
+      </div>
+    </div>
+  `;
+
+  // Mini crypto chart — solo el salonero vs general
+  const chartWrap=document.createElement('div');
+  chartWrap.className='chart-wrap';
+  chartWrap.innerHTML=`
+    <div class="chart-header">
+      <div><div class="chart-title">Mi ticket prom/PAX vs General</div><div style="font-size:10px;color:var(--muted);margin-top:3px">Evolución diaria</div></div>
+    </div>
+    <canvas id="mh-canvas" height="200"></canvas>
+    <div id="mh-tooltip" style="display:none;position:absolute;background:var(--ink);color:#f0ece4;
+      padding:10px 14px;border-radius:2px;font-size:10px;pointer-events:none;z-index:10;min-width:120px;"></div>
+  `;
+  el.appendChild(chartWrap);
+
+  const seriesData={};
+  seriesData[name]=dates.map(d=>{ const s=DIAS[d]?.saloneros?.[name]; return s?.pax?s.total/s.pax:null; });
+  seriesData['General']=dates.map(d=>{ const g=aggGeneral([d]); return g.pax?g.promPax:null; });
+  const colors={[name]:'#c23b22', General:'#c8a96e'};
+  const vis={[name]:true, General:true};
+
+  setTimeout(()=>{
+    const canvas=chartWrap.querySelector('#mh-canvas');
+    drawChart(canvas,dates,seriesData,colors,vis,chartWrap);
+  },50);
+}
+
+function renderMisCompetencias(el){
+  const name=CURRENT_USER;
+  const myComps=COMPS.filter(c=>c.parts.includes(name));
+
+  if(!myComps.length){
+    el.innerHTML=emptyState('🏆','Sin competencias activas','El manager no ha creado competencias aún');
+    return;
+  }
+
+  el.innerHTML=`<div class="sl">Mis competencias · ${name}</div>`;
+  myComps.forEach(comp=>{
+    const ranking=buildCompRanking(comp);
+    const myRank=ranking.findIndex(r=>r.sal===name)+1;
+    const myData=ranking.find(r=>r.sal===name);
+    const totalDias=Math.max(1,daysBetween(comp.inicio,comp.fin));
+    const pasados=Math.min(Math.max(daysBetween(comp.inicio,today()),0),totalDias);
+
+    const card=document.createElement('div');
+    card.className='comp-card';
+    card.innerHTML=`
+      <div class="comp-head">
+        <div><div class="comp-name">${comp.nombre}</div></div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span class="comp-badge badge-${comp.tipo}">${comp.tipo}</span>
+          ${comp.premio?`<span style="color:var(--gold);font-size:10px">🏅 ${comp.premio}</span>`:''}
+        </div>
+      </div>
+      <div class="comp-body">
+        <div style="display:flex;gap:20px;align-items:center;margin-bottom:18px;flex-wrap:wrap">
+          <div style="text-align:center">
+            <div style="font-family:'Syne',sans-serif;font-size:48px;font-weight:800;color:${myRank===1?'var(--gold)':myRank===2?'#999':myRank===3?'#cd7f32':'var(--ink)'}">
+              #${myRank}</div>
+            <div style="font-size:9px;color:var(--muted);letter-spacing:.2em">MI POSICIÓN</div>
+          </div>
+          <div style="flex:1">
+            <div class="comp-prod-tags">${comp.prods.map(p=>`<span class="prod-tag">${p}: <strong>${myData?.prods[p]||0} uds</strong></span>`).join('')}</div>
+            <div style="font-size:9px;color:var(--muted);margin-top:8px">Progreso competencia · ${pasados}/${totalDias} días</div>
+            <div class="progress-bar"><div class="progress-fill" style="width:${(pasados/totalDias*100).toFixed(0)}%"></div></div>
+          </div>
+        </div>
+        ${renderCompRankingTable(comp, ranking)}
+      </div>
+    `;
+    el.appendChild(card);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════════════════
+function emptyState(icon, title, sub){
+  return `<div class="empty-state">
+    <div class="empty-icon">${icon}</div>
+    <div class="empty-title">${title}</div>
+    <div class="empty-sub">${sub}</div>
+  </div>`;
+}
+
+
+
+// ═══════════════════════════════════════════════════════════════
+// MI SEMANA (vista personal salonero)
+// ═══════════════════════════════════════════════════════════════
+function renderMiSemana(el){
+  el.innerHTML = '';
+  const name = CURRENT_USER;
+  const DAYS = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+  const DAYS_SHORT = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  const dowOrder = [1,2,3,4,5,6,0];
+
+  // Group this salonero's data by day-of-week
+  const byDow = {};
+  Object.entries(DIAS).forEach(([date, dia]) => {
+    const s = dia.saloneros?.[name];
+    if(!s || !s.pax) return;
+    const dow = new Date(date + 'T12:00:00').getDay();
+    if(!byDow[dow]) byDow[dow] = [];
+    byDow[dow].push({ date, ...s });
+  });
+
+  const activeDows = dowOrder.filter(d => byDow[d]);
+
+  if(!activeDows.length){
+    el.innerHTML = '<div style="padding:40px;text-align:center;color:#555">No hay suficientes días registrados aún.<br>Los patrones por día aparecen con el tiempo.</div>';
+    return;
+  }
+
+  // Header
+  el.innerHTML = `<div class="sl-header"><div class="sl">Mi semana · ${name}</div></div>`;
+
+  // ── Cards por día ──
+  const cardsWrap = document.createElement('div');
+  cardsWrap.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-bottom:28px;';
+  el.appendChild(cardsWrap);
+
+  // Find best promPax day for highlighting
+  const bestPromPax = Math.max(...activeDows.map(d => {
+    const days = byDow[d];
+    let vt=0, pax=0;
+    days.forEach(s => { vt+=s.total; pax+=s.pax; });
+    return pax ? vt/pax : 0;
+  }));
+
+  activeDows.forEach(dow => {
+    const days = byDow[dow];
+    let vt=0, pax=0, beb=0, com=0, iBeb=0, iCom=0;
+    days.forEach(s => { vt+=s.total; pax+=s.pax; beb+=s.beb||0; com+=s.com||0; iBeb+=s.iBeb||0; iCom+=s.iCom||0; });
+    const promPax  = pax ? vt/pax : 0;
+    const bebPax   = pax ? iBeb/pax : 0;
+    const ratioCB  = beb ? com/beb : 0;
+    const ratioU   = iBeb ? iCom/iBeb : 0;
+    const isBest   = Math.abs(promPax - bestPromPax) < 1;
+    const borderColor = isBest ? 'var(--green)' : 'var(--gold)';
+
+    const card = document.createElement('div');
+    card.style.cssText = `background:var(--ink);border-radius:2px;padding:18px 20px;position:relative;overflow:hidden;`;
+    card.innerHTML = `
+      <div style="position:absolute;top:0;left:0;width:3px;height:100%;background:${borderColor}"></div>
+      <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:2px">
+        <div style="font-size:17px;font-weight:800;font-family:'Syne',sans-serif;color:#f0ece4">${DAYS[dow]}</div>
+        ${isBest ? '<div style="font-size:8px;color:var(--green);letter-spacing:.1em">✦ MEJOR DÍA</div>' : ''}
+      </div>
+      <div style="font-size:9px;letter-spacing:.2em;color:#555;margin-bottom:14px">${days.length} ${days.length===1?'vez':'veces'}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;">
+        <div>
+          <div style="font-size:8px;letter-spacing:.15em;text-transform:uppercase;color:#555;margin-bottom:2px">Prom/PAX</div>
+          <div style="font-size:15px;font-weight:700;font-family:'Syne',sans-serif;color:#f0ece4">${fi(promPax)}</div>
+        </div>
+        <div>
+          <div style="font-size:8px;letter-spacing:.15em;text-transform:uppercase;color:#555;margin-bottom:2px">PAX promedio</div>
+          <div style="font-size:15px;font-weight:700;font-family:'Syne',sans-serif;color:#f0ece4">${Math.round(pax/days.length)}</div>
+        </div>
+        <div>
+          <div style="font-size:8px;letter-spacing:.15em;text-transform:uppercase;color:#555;margin-bottom:2px">Beb/PAX</div>
+          <div style="font-size:14px;font-weight:700">${fmtBebPax(bebPax)}</div>
+        </div>
+        <div>
+          <div style="font-size:8px;letter-spacing:.15em;text-transform:uppercase;color:#555;margin-bottom:2px">Ratio C/B</div>
+          <div style="font-size:12px">${fmtBothRatios(ratioCB, ratioU)}</div>
+        </div>
+      </div>`;
+    cardsWrap.appendChild(card);
+  });
+
+  // ── Mini bar chart: Prom/PAX por día ──
+  const chartTitle = document.createElement('div');
+  chartTitle.innerHTML = '<div class="sl" style="margin-bottom:14px">Mi Prom/PAX por día</div>';
+  el.appendChild(chartTitle);
+
+  const chartWrap = document.createElement('div');
+  chartWrap.style.cssText = 'display:flex;align-items:flex-end;gap:8px;height:100px;padding:0 4px;margin-bottom:28px;';
+
+  dowOrder.forEach(dow => {
+    const days = byDow[dow];
+    const col = document.createElement('div');
+    col.style.cssText = 'flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;';
+    if(!days){
+      col.innerHTML = `<div style="flex:1"></div><div style="font-size:9px;color:#333">${DAYS_SHORT[dow]}</div>`;
+    } else {
+      let vt=0, pax=0;
+      days.forEach(s => { vt+=s.total; pax+=s.pax; });
+      const avg = pax ? vt/pax : 0;
+      const pct = bestPromPax ? (avg/bestPromPax*100) : 0;
+      const isB = Math.abs(avg-bestPromPax)<1;
+      col.innerHTML = `
+        <div style="font-size:8px;color:#888;white-space:nowrap">${fi(avg)}</div>
+        <div style="width:100%;height:${Math.max(pct,4).toFixed(0)}px;background:${isB?'var(--green)':'var(--gold)'};border-radius:1px 1px 0 0"></div>
+        <div style="font-size:9px;color:#aaa;font-weight:600">${DAYS_SHORT[dow]}</div>
+      `;
+    }
+    chartWrap.appendChild(col);
+  });
+  el.appendChild(chartWrap);
+
+  // ── Comparativa: este salonero vs general por día ──
+  const compTitle = document.createElement('div');
+  compTitle.innerHTML = '<div class="sl" style="margin-bottom:14px">Vs promedio del restaurante</div>';
+  el.appendChild(compTitle);
+
+  const compTbl = document.createElement('table');
+  compTbl.className = 'rt';
+  compTbl.innerHTML = `<thead><tr>
+    <th>Día</th><th>Mi Prom/PAX</th><th>Resto del restaurante</th><th>Diferencia</th><th>Días trabajados</th>
+  </tr></thead>`;
+  const compBody = document.createElement('tbody');
+
+  activeDows.forEach(dow => {
+    const myDays = byDow[dow];
+    let myVt=0, myPax=0;
+    myDays.forEach(s=>{ myVt+=s.total; myPax+=s.pax; });
+    const myProm = myPax ? myVt/myPax : 0;
+
+    // General for same days (all saloneros except this one)
+    let genVt=0, genPax=0;
+    (byDow[dow]||[]).forEach(dayEntry => {
+      // byDow[dow] has this salonero's records, need to get gen from DIAS
+    });
+    // Get general from DIAS for those dates
+    const datesForDow = Object.keys(DIAS).filter(date => new Date(date+'T12:00:00').getDay()===dow);
+    datesForDow.forEach(date => {
+      Object.values(DIAS[date]?.saloneros||{}).forEach(s => {
+        genVt += s.total||0; genPax += s.pax||0;
+      });
+    });
+    const genProm = genPax ? genVt/genPax : 0;
+    const diff = myProm - genProm;
+    const above = diff >= 0;
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="font-weight:700">${DAYS[dow]}</td>
+      <td style="font-weight:700">${fi(myProm)}</td>
+      <td>${fi(genProm)}</td>
+      <td><span class="badge badge-${above?'up':'down'}">${above?'▲':'▼'} ${fi(Math.abs(diff))}</span></td>
+      <td style="color:#555">${myDays.length}</td>
+    `;
+    compBody.appendChild(tr);
+  });
+  compTbl.appendChild(compBody);
+  el.appendChild(compTbl);
+}
+
+// ── AUTO-FIT KPI VALUES ──
+function fitKpiVals(){
+  document.querySelectorAll('.kpi-val').forEach(el => {
+    el.style.transform = 'scaleX(1)';
+    const parent = el.closest('.kpi');
+    if(!parent) return;
+    const pStyle = getComputedStyle(parent);
+    const maxW = parent.clientWidth
+      - parseFloat(pStyle.paddingLeft)
+      - parseFloat(pStyle.paddingRight)
+      - 4; // small buffer
+    const elW = el.getBoundingClientRect().width;
+    if(elW > maxW && maxW > 0){
+      el.style.transform = 'scaleX(' + (maxW / elW).toFixed(3) + ')';
+    }
+  });
+}
+
+// ── INIT ──
+document.addEventListener('DOMContentLoaded', function(){
+  console.log('DOM ready, building login');
+  rebuildAllSals();
+  buildLogin();
+  updateStorageBadge();
+  // Auto-sync from cloud on load
+  if(BACKEND_URL) syncFromCloud();
+  // Fit KPI values on resize
+  if(window.ResizeObserver){
+    new ResizeObserver(()=>{ requestAnimationFrame(fitKpiVals); }).observe(document.body);
+  }
+  console.log('Login built');
+});
+</script>
+</body>
+</html>
