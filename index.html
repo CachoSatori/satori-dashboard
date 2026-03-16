@@ -322,12 +322,65 @@ header{
 .empty-title{font-family:'Shippori Mincho',serif;font-size:18px;color:var(--ink);margin-bottom:8px;}
 .empty-sub{font-size:10px;letter-spacing:.15em;}
 
+/* ── MOBILE (≤760px) ── */
 @media(max-width:760px){
-  header,.nav,.main{padding-left:16px;padding-right:16px;}
+  /* Layout */
+  header{padding:10px 14px;}
+  .logo{font-size:14px;}
+  .header-user{display:none;}
+  #storage-badge{display:none;}
+  .nav{padding:0 8px;}
+  .ntab{padding:10px 10px;font-size:7px;letter-spacing:.12em;}
+  .main{padding:16px 14px;}
+
+  /* KPIs: 2 per row on phone */
+  .kpi-grid{grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:20px;}
+  .kpi{padding:12px 12px;}
+  .kpi-val{font-size:20px !important;}
+  .kpi-label{font-size:7px;}
+
+  /* Tables: scrollable horizontally */
+  .rt-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -14px;padding:0 14px;}
+  .rt{font-size:11px;min-width:520px;}
+  .rt thead th{padding:8px 10px;font-size:7px;}
+  .rt td{padding:8px 10px;}
+
+  /* Section headers */
+  .sl{font-size:9px;letter-spacing:.2em;}
+  .sl-header{margin-bottom:16px;}
+
+  /* Cards */
   .cards-grid{grid-template-columns:1fr;}
-  .kpi-grid{grid-template-columns:repeat(2,1fr);}
-  .sal-hero{padding:20px;}
+  .sal-hero{padding:16px;}
   .sal-rank-num{font-size:36px;}
+
+  /* Chart */
+  .chart-header{flex-direction:column;gap:8px;}
+  #chart-legend{flex-wrap:wrap;gap:6px;}
+
+  /* Login */
+  .login-logo{font-size:28px;}
+  .login-box{padding:24px 20px;}
+  .login-btn{padding:12px 16px;font-size:10px;}
+
+  /* Stats rows */
+  .stat{padding:8px 0;}
+  .stat-l,.stat-r{font-size:10px;}
+
+  /* Backend config input */
+  #backend-url-inp{font-size:9px;padding:6px 8px;}
+
+  /* Ranking table - hide less important cols on mobile */
+  .rt .hide-mobile{display:none;}
+
+  /* Upload zone */
+  .upload-zone{padding:24px 16px;}
+}
+
+/* ── SMALL PHONES (≤380px) ── */
+@media(max-width:380px){
+  .kpi-grid{grid-template-columns:1fr;}
+  .ntab{padding:10px 7px;font-size:6.5px;}
 }
 
 .ratio-ok  { color:var(--green); font-weight:700; }
@@ -777,6 +830,15 @@ function renderView(id){
   else if(id==='mi-semana') renderMiSemana(el);
   else if(id==='mis-competencias') renderMisCompetencias(el);
   requestAnimationFrame(fitKpiVals);
+  // Wrap tables for mobile scroll
+  document.querySelectorAll('.rt').forEach(t => {
+    if(!t.parentElement.classList.contains('rt-wrap')){
+      const w = document.createElement('div');
+      w.className = 'rt-wrap';
+      t.parentNode.insertBefore(w, t);
+      w.appendChild(t);
+    }
+  });
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -991,8 +1053,8 @@ function renderResumen(el){
       { key: 'total',    label: 'Ventas Totales' },
       { key: 'promPax',  label: 'Prom/PAX' },
       { key: 'bebPax',   label: 'Beb/PAX' },
-      { key: null,       label: 'Ratio C/B<br><small style="font-weight:400;opacity:.7">₡ / uds</small>' },
-      { key: null,       label: 'vs General' },
+      { key: null,       label: 'Ratio C/B<br><small style="font-weight:400;opacity:.7">₡ / uds</small>', hideMobile: true },
+      { key: null,       label: 'vs General', hideMobile: true },
       { key: null,       label: 'vs Mejor', style: 'min-width:80px' },
     ];
 
@@ -1008,7 +1070,8 @@ function renderResumen(el){
       const arrow = c.key ? `<span class="sort-arrow">${c.key===sortKey?'▼':'⇅'}</span>` : '';
       const style = c.style ? ` style="${c.style}"` : '';
       const click = c.key ? ` onclick="buildRankingTable('${c.key}')"` : '';
-      return `<th class="${sortable}${active}"${style}${click}>${c.label}${arrow}</th>`;
+      const hm = c.hideMobile ? ' hide-mobile' : '';
+      return `<th class="${sortable}${active}${hm}"${style}${click}>${c.label}${arrow}</th>`;
     }).join('');
     tbl.innerHTML = `<thead><tr>${headRow}</tr></thead>`;
 
@@ -1026,8 +1089,8 @@ function renderResumen(el){
         <td style="font-weight:700;color:var(--red)">${fi(s.total)}</td>
         <td style="font-weight:700">${fi(s.promPax)}</td>
         <td>${fmtBebPax(s.bebPax)}</td>
-        <td>${fmtBothRatios(s.ratioCB, s.ratioU)}</td>
-        <td><span class="badge badge-${above?'up':'down'}">${above?'▲':'▼'} ${fi(diff)}</span></td>
+        <td class="hide-mobile">${fmtBothRatios(s.ratioCB, s.ratioU)}</td>
+        <td class="hide-mobile"><span class="badge badge-${above?'up':'down'}">${above?'▲':'▼'} ${fi(diff)}</span></td>
         <td><div class="bar-mini" style="width:${pctBar}%"></div><div style="font-size:9px;color:var(--muted);margin-top:3px">${pctBar}%</div></td>
       `;
       tbody.appendChild(tr);
