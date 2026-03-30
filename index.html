@@ -84,9 +84,9 @@ header{
   overflow-x:auto;gap:0;scrollbar-width:none;}
 .nav::-webkit-scrollbar{display:none;}
 .ntab{
-  padding:13px 22px;cursor:pointer;font-size:10px;letter-spacing:.18em;
+  padding:13px 22px;cursor:pointer;font-size:12px;letter-spacing:.1em;
   text-transform:uppercase;border-bottom:2px solid transparent;
-  margin-bottom:-2px;color:var(--muted);transition:all .2s;white-space:nowrap;
+  margin-bottom:-2px;color:#7a7060;transition:all .2s;white-space:nowrap;font-weight:500;
 }
 .ntab:hover{color:var(--ink);}
 .ntab.active{color:var(--red);border-bottom-color:var(--red);font-weight:700;}
@@ -99,8 +99,8 @@ header{
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 
 /* ── SECTION LABEL ── */
-.sl{font-size:9px;letter-spacing:.45em;text-transform:uppercase;
-  color:var(--muted);margin-bottom:20px;display:flex;align-items:center;gap:12px;}
+.sl{font-size:12px;letter-spacing:.2em;text-transform:uppercase;
+  color:#4a4030;margin-bottom:20px;display:flex;align-items:center;gap:12px;font-weight:700;}
 .sl::after{content:'';flex:1;height:1px;background:var(--border);}
 
 /* ── DATE RANGE BAR ── */
@@ -109,7 +109,7 @@ header{
   margin-bottom:28px;padding:14px 18px;
   background:var(--panel);border:1px solid var(--border);border-radius:2px;
 }
-.range-bar label{font-size:9px;letter-spacing:.25em;text-transform:uppercase;color:var(--muted);}
+.range-bar label{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#6a6050;font-weight:500;}
 .range-input{
   border:1px solid var(--border);padding:7px 11px;
   font-family:'DM Mono',monospace;font-size:11px;background:#fff;
@@ -131,13 +131,13 @@ header{
 .kpi.red::before{background:var(--red);}
 .kpi.green::before{background:var(--green);}
 .kpi.blue::before{background:var(--blue);}
-.kpi-label{font-size:8px;letter-spacing:.3em;text-transform:uppercase;color:#555;margin-bottom:8px;}
+.kpi-label{font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:#999;margin-bottom:8px;font-weight:600;}
 .kpi-val{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:#f0ece4;line-height:1;white-space:nowrap;display:inline-block;transform-origin:left center;}
-.kpi-delta{font-size:10px;margin-top:6px;}
+.kpi-delta{font-size:11px;margin-top:6px;}
 .kpi-delta.up{color:var(--green);}
 .kpi-delta.down{color:var(--red);}
 .kpi-delta.flat{color:#555;}
-.kpi-sub{font-size:9px;color:#444;margin-top:4px;}
+.kpi-sub{font-size:11px;color:#888;margin-top:4px;}
 
 /* ── CRYPTO CHART ── */
 .chart-wrap{
@@ -158,9 +158,9 @@ header{
 #chart-canvas{width:100%;height:220px;display:block;}
 
 /* ── TABLES ── */
-.rt{width:100%;border-collapse:collapse;font-size:12px;}
+.rt{width:100%;border-collapse:collapse;font-size:13px;}
 .rt thead tr{background:var(--ink);color:#f0ece4;}
-.rt thead th{padding:11px 16px;text-align:left;font-size:8px;letter-spacing:.3em;text-transform:uppercase;font-weight:400;}
+.rt thead th{padding:11px 16px;text-align:left;font-size:9px;letter-spacing:.2em;text-transform:uppercase;font-weight:500;color:#aaa;}
 .rt thead th.sortable{cursor:pointer;user-select:none;}
 .rt thead th.sortable:hover{color:var(--gold);}
 .rt thead th.sort-active{color:var(--gold);}
@@ -168,12 +168,12 @@ header{
 .rt thead th.sort-active .sort-arrow{opacity:1;color:var(--gold);}
 .rt tbody tr{border-bottom:1px solid var(--border);transition:background .1s;}
 .rt tbody tr:hover{background:var(--panel);}
-.rt td{padding:11px 16px;vertical-align:middle;}
+.rt td{padding:12px 16px;vertical-align:middle;font-size:13px;}
 .rt td.num{font-family:'Syne',sans-serif;font-weight:800;}
 .rank-pos{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--border);}
 .rank-pos.p1{color:#c8a96e;}.rank-pos.p2{color:#999;}.rank-pos.p3{color:#cd7f32;}
 .bar-mini{height:5px;background:var(--red);border-radius:1px;margin-top:4px;}
-.td-name{font-family:'Shippori Mincho',serif;font-size:14px;font-weight:600;}
+.td-name{font-family:'Shippori Mincho',serif;font-size:15px;font-weight:700;}
 .td-sub{font-size:9px;color:var(--muted);margin-top:2px;}
 .badge{font-size:8px;letter-spacing:.2em;text-transform:uppercase;
   padding:3px 8px;border-radius:1px;font-weight:700;}
@@ -190,8 +190,8 @@ header{
 .stat{display:flex;justify-content:space-between;align-items:baseline;
   padding:6px 0;border-bottom:1px solid var(--border);font-size:11px;}
 .stat:last-child{border-bottom:none;}
-.stat-l{color:var(--muted);}
-.stat-r{font-weight:600;}
+.stat-l{color:#7a7060;font-size:11px;}
+.stat-r{font-weight:700;font-size:11px;}
 
 /* ── UPLOAD ZONE ── */
 .upload-zone{
@@ -210,8 +210,8 @@ header{
 }
 .upload-row:last-child{border-bottom:none;}
 .upload-dot{width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0;}
-.upload-fname{flex:1;font-weight:600;}
-.upload-date{color:var(--muted);}
+.upload-fname{flex:1;font-weight:600;font-size:12px;}
+.upload-date{color:#7a7060;font-size:11px;}
 .upload-del{background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;
   padding:2px 6px;transition:color .15s;}
 .upload-del:hover{color:var(--red);}
@@ -342,14 +342,14 @@ header{
   .header-user{display:none;}
   #storage-badge{display:none;}
   .nav{padding:0 8px;}
-  .ntab{padding:10px 10px;font-size:7px;letter-spacing:.12em;}
+  .ntab{padding:10px 10px;font-size:10px;letter-spacing:.08em;}
   .main{padding:16px 14px;}
 
   /* KPIs: 2 per row on phone */
   .kpi-grid{grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:20px;}
   .kpi{padding:12px 12px;}
   .kpi-val{font-size:20px !important;}
-  .kpi-label{font-size:7px;}
+  .kpi-label{font-size:9px;}
 
   /* Tables: scrollable horizontally */
   .rt-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -14px;padding:0 14px;}
@@ -358,7 +358,7 @@ header{
   .rt td{padding:8px 10px;}
 
   /* Section headers */
-  .sl{font-size:9px;letter-spacing:.2em;}
+  .sl{font-size:10px;letter-spacing:.15em;}
   .sl-header{margin-bottom:16px;}
 
   /* Cards */
@@ -392,7 +392,7 @@ header{
 /* ── SMALL PHONES (≤380px) ── */
 @media(max-width:380px){
   .kpi-grid{grid-template-columns:1fr;}
-  .ntab{padding:10px 7px;font-size:6.5px;}
+  .ntab{padding:10px 7px;font-size:9px;}
 }
 
 .ratio-ok  { color:var(--green); font-weight:700; }
@@ -1188,8 +1188,12 @@ function aggGeneral(dates){
 // ═══════════════════════════════════════════════════════════════
 function makeRangeBar(fromId, toId, onApply){
   const dates = getDates();
-  const first = dates[0] || today();
   const last  = dates[dates.length-1] || today();
+  // Default: first day of the month of the last date
+  const lastObj = new Date((last)+'T12:00:00');
+  const firstOfMonth = new Date(lastObj.getFullYear(), lastObj.getMonth(), 1).toISOString().slice(0,10);
+  // Use firstOfMonth if there are dates in that month, else use earliest date
+  const first = dates.find(d => d >= firstOfMonth) ? firstOfMonth : (dates[0] || today());
 
   const wrap = document.createElement('div');
   wrap.className = 'range-bar';
@@ -1204,9 +1208,31 @@ function makeRangeBar(fromId, toId, onApply){
     inp.type = 'date';
     inp.id = id;
     inp.value = val;
-    // Fire on both change (desktop) and input (mobile/Safari)
-    inp.addEventListener('change', applyFn);
-    inp.addEventListener('input',  applyFn);
+    let lastVal = val;
+    // Multi-event approach for cross-browser compatibility
+    // Safari/iOS: fires 'change' on blur after picker closes
+    // Chrome: fires 'change' + 'input' immediately
+    // Firefox: fires 'change' on blur
+    ['change','input','blur'].forEach(evt => {
+      inp.addEventListener(evt, () => {
+        if(inp.value && inp.value !== lastVal){
+          lastVal = inp.value;
+          applyFn();
+        }
+      });
+    });
+    // Polling fallback: check every 300ms while focused (covers all edge cases)
+    inp.addEventListener('focus', () => {
+      const poll = setInterval(() => {
+        if(document.activeElement !== inp){ clearInterval(poll); return; }
+        if(inp.value && inp.value !== lastVal){
+          lastVal = inp.value;
+          applyFn();
+        }
+      }, 300);
+      // Auto-clear after 30s
+      setTimeout(() => clearInterval(poll), 30000);
+    });
     return inp;
   }
   function mkPreset(label, days){
@@ -1282,7 +1308,7 @@ function renderResumen(el){
     <div class="sl">Resumen · ${fmtDate(lastDate)}</div>
 
     ${gen.totalRest > 0 ? `
-    <div style="font-size:8px;letter-spacing:.25em;text-transform:uppercase;color:#555;margin-bottom:10px">Restaurante completo</div>
+    <div style="font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:#5a5040;font-weight:600;margin-bottom:10px">Restaurante completo</div>
     <div class="kpi-grid" style="margin-bottom:6px">
       <div class="kpi red">
         <div class="kpi-label">Ventas Totales Restaurante</div>
@@ -1306,7 +1332,7 @@ function renderResumen(el){
       </div>
     </div>
     <div style="height:1px;background:var(--border);margin:16px 0 14px"></div>
-    <div style="font-size:8px;letter-spacing:.25em;text-transform:uppercase;color:#555;margin-bottom:10px">Saloneros · salón</div>
+    <div style="font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:#5a5040;font-weight:600;margin-bottom:10px">Saloneros · salón</div>
     ` : ''}
 
     <div class="kpi-grid">
@@ -1338,6 +1364,10 @@ function renderResumen(el){
       <div class="kpi">
         <div class="kpi-label">Prom / Plato</div>
         <div class="kpi-val">${fi(gen.promPlato)}</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Prom / Bebida</div>
+        <div class="kpi-val">${fi(gen.promBebida)}</div>
       </div>
       <div class="kpi">
         <div class="kpi-label">Beb / PAX</div>
@@ -1459,7 +1489,7 @@ function applyHistorico(){
   // KPIs
   let kpiHtml = `
     ${gen.totalRest > 0 ? `
-    <div style="font-size:8px;letter-spacing:.25em;text-transform:uppercase;color:#555;margin-bottom:10px">Restaurante completo · ${dates.length} días</div>
+    <div style="font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:#5a5040;font-weight:600;margin-bottom:10px">Restaurante completo · ${dates.length} días</div>
     <div class="kpi-grid" style="margin-bottom:6px">
       <div class="kpi red"><div class="kpi-label">Ventas Totales Restaurante</div><div class="kpi-val">${fi(gen.totalRest)}</div></div>
       <div class="kpi"><div class="kpi-label">Salón (saloneros)</div><div class="kpi-val">${fi(gen.total)}</div><div class="kpi-sub">${gen.totalRest?gen.pctSalon.toFixed(1)+'% del total':'—'}</div></div>
@@ -1467,7 +1497,7 @@ function applyHistorico(){
       <div class="kpi blue"><div class="kpi-label">Solo Delivery</div><div class="kpi-val">${fi(gen.cajDelivery)}</div><div class="kpi-sub">${gen.pctDelivery.toFixed(1)}% del total</div></div>
     </div>
     <div style="height:1px;background:var(--border);margin:16px 0 14px"></div>
-    <div style="font-size:8px;letter-spacing:.25em;text-transform:uppercase;color:#555;margin-bottom:10px">Saloneros · salón</div>
+    <div style="font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:#5a5040;font-weight:600;margin-bottom:10px">Saloneros · salón</div>
     ` : ''}
     <div class="kpi-grid" style="margin-bottom:28px">
       <div class="kpi ${gen.totalRest>0?'':'red'}"><div class="kpi-label">${gen.totalRest>0?'Ventas Salón':'Ventas Totales'}</div><div class="kpi-val">${fi(gen.total)}</div><div class="kpi-sub">${dates.length} días</div></div>
@@ -1476,6 +1506,7 @@ function applyHistorico(){
       <div class="kpi"><div class="kpi-label">Ventas Comidas</div><div class="kpi-val">${fi(gen.com)}</div></div>
       <div class="kpi blue"><div class="kpi-label">Ventas Bebidas</div><div class="kpi-val">${fi(gen.beb)}</div></div>
       <div class="kpi"><div class="kpi-label">Prom/Plato promedio</div><div class="kpi-val">${fi(gen.promPlato)}</div></div>
+      <div class="kpi"><div class="kpi-label">Prom/Bebida promedio</div><div class="kpi-val">${fi(gen.promBebida)}</div></div>
       <div class="kpi"><div class="kpi-label">Ratio Comida/Bebida</div><div class="kpi-val" style="font-size:18px">${fmtBothRatios(gen.ratioCB, gen.ratioU)}</div><div class="kpi-sub">₡ ideal 2.5–4.5 · uds ideal 1.5–3.5</div></div>
     </div>`;
 
@@ -1777,7 +1808,7 @@ function renderXLS(el){
   const backendPanel = document.createElement('div');
   backendPanel.style.cssText = `background:var(--ink);border-radius:2px;padding:18px 22px;margin-bottom:20px;border-left:3px solid ${isConfigured?'var(--green)':'var(--gold)'}`;
   backendPanel.innerHTML = `
-    <div style="font-size:8px;letter-spacing:.3em;text-transform:uppercase;color:#555;margin-bottom:10px">☁ Google Sheets Backend</div>
+    <div style="font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:#5a5040;font-weight:600;margin-bottom:10px">☁ Google Sheets Backend</div>
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
       <input id="backend-url-inp" type="url" placeholder="Pega la URL del Apps Script de Google..."
         value="${BACKEND_URL}"
@@ -1943,7 +1974,7 @@ function renderXLS(el){
   const lastDia  = lastDate ? DIAS[lastDate] : null;
   listHeader.innerHTML = `
     <div>
-      <div style="font-size:8px;letter-spacing:.25em;text-transform:uppercase;color:#555;margin-bottom:4px">Reportes cargados · ${dates.length} archivo(s)</div>
+      <div style="font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:#5a5040;font-weight:600;margin-bottom:4px">Reportes cargados · ${dates.length} archivo(s)</div>
       ${lastDia ? `<div style="display:flex;align-items:center;gap:10px;">
         <div class="upload-dot"></div>
         <span style="font-size:11px;font-weight:600;color:#f0ece4">${lastDia.fileName||'reporte'}</span>
@@ -2406,7 +2437,7 @@ function renderCajeros(el){
   const filterBar = document.createElement('div');
   filterBar.style.cssText = 'display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:24px;padding:14px 18px;background:var(--ink);border-radius:2px;';
   filterBar.innerHTML = `
-    <span style="font-size:8px;letter-spacing:.2em;text-transform:uppercase;color:#555">Rango</span>
+    <span style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#5a5040;font-weight:600">Rango</span>
     <input type="date" id="caj-from" value="${defaultFrom}" style="background:#0a0a0a;border:1px solid #2a2a2a;border-radius:2px;padding:5px 8px;color:#f0ece4;font-size:11px;">
     <span style="color:#555">→</span>
     <input type="date" id="caj-to" value="${defaultTo}" style="background:#0a0a0a;border:1px solid #2a2a2a;border-radius:2px;padding:5px 8px;color:#f0ece4;font-size:11px;">
@@ -2421,8 +2452,17 @@ function renderCajeros(el){
   setTimeout(() => {
     const cf = document.getElementById('caj-from');
     const ct = document.getElementById('caj-to');
-    if(cf){ cf.addEventListener('change', ()=>applyCajeroFilter()); cf.addEventListener('input', ()=>applyCajeroFilter()); }
-    if(ct){ ct.addEventListener('change', ()=>applyCajeroFilter()); ct.addEventListener('input', ()=>applyCajeroFilter()); }
+    function watchDateInput(inp, fn){
+      if(!inp) return;
+      let last = inp.value;
+      ['change','input','blur'].forEach(e => inp.addEventListener(e, ()=>{ if(inp.value!==last){last=inp.value;fn();} }));
+      inp.addEventListener('focus', ()=>{
+        const p=setInterval(()=>{ if(document.activeElement!==inp){clearInterval(p);return;} if(inp.value!==last){last=inp.value;fn();} },300);
+        setTimeout(()=>clearInterval(p),30000);
+      });
+    }
+    watchDateInput(cf, applyCajeroFilter);
+    watchDateInput(ct, applyCajeroFilter);
   }, 50);
 
   // Container for dynamic content
@@ -2569,7 +2609,7 @@ function renderCajeros(el){
       const kpi = document.createElement('div');
       kpi.style.cssText = 'background:var(--ink);border-radius:2px;padding:16px 18px;border-left:3px solid var(--gold);';
       kpi.innerHTML = `
-        <div style="font-size:8px;letter-spacing:.25em;text-transform:uppercase;color:#555;margin-bottom:6px">${label}</div>
+        <div style="font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:#5a5040;font-weight:600;margin-bottom:6px">${label}</div>
         <div style="font-size:20px;font-weight:800;font-family:'Syne',sans-serif;color:${color}">${val}</div>
         <div style="font-size:9px;color:#555;margin-top:4px">${sub}</div>
       `;
@@ -2753,23 +2793,23 @@ function renderSemana(el){
     <div style="font-size:9px;letter-spacing:.2em;color:#555;margin-bottom:16px">${totalDays} ${totalDays===1?'día':'días'} registrado${totalDays===1?'':'s'}</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px 20px;">
       <div>
-        <div style="font-size:8px;letter-spacing:.2em;text-transform:uppercase;color:#555;margin-bottom:3px">Venta promedio/día</div>
+        <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#5a5040;font-weight:600;margin-bottom:3px">Venta promedio/día</div>
         <div style="font-size:16px;font-weight:700;font-family:'Syne',sans-serif;color:var(--red)">${fi(promDia)}</div>
       </div>
       <div>
-        <div style="font-size:8px;letter-spacing:.2em;text-transform:uppercase;color:#555;margin-bottom:3px">PAX promedio/día</div>
+        <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#5a5040;font-weight:600;margin-bottom:3px">PAX promedio/día</div>
         <div style="font-size:16px;font-weight:700;font-family:'Syne',sans-serif;color:#f0ece4">${totalDays?Math.round(totalPax/totalDays):0}</div>
       </div>
       <div>
-        <div style="font-size:8px;letter-spacing:.2em;text-transform:uppercase;color:#555;margin-bottom:3px">Prom/PAX</div>
+        <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#5a5040;font-weight:600;margin-bottom:3px">Prom/PAX</div>
         <div style="font-size:16px;font-weight:700;font-family:'Syne',sans-serif;color:#f0ece4">${fi(promPax)}</div>
       </div>
       <div>
-        <div style="font-size:8px;letter-spacing:.2em;text-transform:uppercase;color:#555;margin-bottom:3px">Beb/PAX</div>
+        <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#5a5040;font-weight:600;margin-bottom:3px">Beb/PAX</div>
         <div style="font-size:15px;font-weight:700">${fmtBebPax(bebPax)}</div>
       </div>
       <div>
-        <div style="font-size:8px;letter-spacing:.2em;text-transform:uppercase;color:#555;margin-bottom:3px">Ratio C/B</div>
+        <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#5a5040;font-weight:600;margin-bottom:3px">Ratio C/B</div>
         <div style="font-size:13px;font-weight:700">${fmtBothRatios(ratioCB,0)}</div>
       </div>
     </div>`;
@@ -3254,6 +3294,7 @@ function renderMiDia(el){
       <div class="kpi"><div class="kpi-label">Comidas</div><div class="kpi-val">${fi(sal.com)}</div><div class="kpi-sub">${sal.iCom} platos</div></div>
       <div class="kpi blue"><div class="kpi-label">Bebidas</div><div class="kpi-val">${fi(sal.beb)}</div><div class="kpi-sub">${sal.iBeb} bebidas</div></div>
       <div class="kpi"><div class="kpi-label">Prom/Plato</div><div class="kpi-val">${fi(sal.promPlato)}</div></div>
+      <div class="kpi"><div class="kpi-label">Prom/Bebida</div><div class="kpi-val">${fi(sal.promBebida)}</div></div>
       <div class="kpi"><div class="kpi-label">Beb / PAX</div><div class="kpi-val" style="font-size:22px">${fmtBebPax(sal.bebPax)}</div><div class="kpi-sub">ideal ≥ 1.2</div></div><div class="kpi"><div class="kpi-label">Ratio Comida/Bebida</div><div class="kpi-val" style="font-size:18px">${fmtBothRatios(sal.ratioCB||sal.com/Math.max(sal.beb,1), sal.ratioU)}</div><div class="kpi-sub">₡ ideal 2.5–4.5 · uds 1.5–3.5</div></div>
     </div>
     <div class="sl">Mis productos top</div>
@@ -3298,6 +3339,7 @@ function applyMiHistorial(){
       <div class="kpi"><div class="kpi-label">PAX totales</div><div class="kpi-val">${agg.pax}</div></div>
       <div class="kpi green"><div class="kpi-label">Prom/PAX</div><div class="kpi-val">${fi(agg.promPax)}</div></div>
       <div class="kpi"><div class="kpi-label">Prom/Plato</div><div class="kpi-val">${fi(agg.promPlato)}</div></div>
+      <div class="kpi"><div class="kpi-label">Prom/Bebida</div><div class="kpi-val">${fi(agg.promBebida)}</div></div>
       <div class="kpi"><div class="kpi-label">Beb / PAX</div><div class="kpi-val" style="font-size:22px">${fmtBebPax(agg.bebPax)}</div><div class="kpi-sub">ideal ≥ 1.2</div></div><div class="kpi"><div class="kpi-label">Ratio Comida/Bebida</div><div class="kpi-val" style="font-size:18px">${fmtBothRatios(agg.ratioCB, agg.ratioU)}</div><div class="kpi-sub">₡ ideal 2.5–4.5 · uds 1.5–3.5</div></div>
       <div class="kpi blue"><div class="kpi-label">vs General Prom/PAX</div>
         <div class="kpi-val">${fi(gen.promPax)}</div>
@@ -3579,7 +3621,7 @@ function renderEvaluacion(el){
   const metaSection = document.createElement('div');
   metaSection.style.cssText = 'background:var(--ink);border-radius:2px;padding:20px 24px;margin-bottom:24px;border-left:3px solid var(--gold);';
   metaSection.innerHTML = `
-    <div style="font-size:8px;letter-spacing:.3em;text-transform:uppercase;color:#555;margin-bottom:16px">🎯 Metas del período</div>
+    <div style="font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:#5a5040;font-weight:600;margin-bottom:16px">🎯 Metas del período</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;">
       <div>
         <div style="font-size:9px;color:#888;margin-bottom:6px">Meta mensual restaurante · ${monthKey}</div>
@@ -3657,7 +3699,7 @@ function renderEvaluacion(el){
   const filterBar = document.createElement('div');
   filterBar.style.cssText = 'display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:20px;';
   filterBar.innerHTML = `
-    <span style="font-size:8px;letter-spacing:.2em;text-transform:uppercase;color:#555">Período de evaluación</span>
+    <span style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#5a5040;font-weight:600">Período de evaluación</span>
     <input type="date" id="eval-from" value="${defFrom}" style="background:#0a0a0a;border:1px solid #2a2a2a;border-radius:2px;padding:5px 8px;color:#f0ece4;font-size:11px;">
     <span style="color:#555">→</span>
     <input type="date" id="eval-to" value="${defTo}" style="background:#0a0a0a;border:1px solid #2a2a2a;border-radius:2px;padding:5px 8px;color:#f0ece4;font-size:11px;">
@@ -3675,8 +3717,17 @@ function renderEvaluacion(el){
   setTimeout(() => {
     const ef = document.getElementById('eval-from');
     const et = document.getElementById('eval-to');
-    if(ef){ ef.addEventListener('change', ()=>applyEvalFilter()); ef.addEventListener('input', ()=>applyEvalFilter()); }
-    if(et){ et.addEventListener('change', ()=>applyEvalFilter()); et.addEventListener('input', ()=>applyEvalFilter()); }
+    function watchEvalInput(inp, fn){
+      if(!inp) return;
+      let last = inp.value;
+      ['change','input','blur'].forEach(e => inp.addEventListener(e, ()=>{ if(inp.value!==last){last=inp.value;fn();} }));
+      inp.addEventListener('focus', ()=>{
+        const p=setInterval(()=>{ if(document.activeElement!==inp){clearInterval(p);return;} if(inp.value!==last){last=inp.value;fn();} },300);
+        setTimeout(()=>clearInterval(p),30000);
+      });
+    }
+    watchEvalInput(ef, applyEvalFilter);
+    watchEvalInput(et, applyEvalFilter);
   }, 50);
 
   window.saveMetaRestaurante = function(mk){
@@ -3899,7 +3950,7 @@ function renderConfig(el){
 
       <!-- PINs info -->
       <div style="background:var(--ink);border-radius:2px;padding:22px 24px;border-left:3px solid var(--gold);">
-        <div style="font-size:8px;letter-spacing:.3em;text-transform:uppercase;color:#555;margin-bottom:14px">🔑 PINs de acceso</div>
+        <div style="font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:#5a5040;font-weight:600;margin-bottom:14px">🔑 PINs de acceso</div>
         <div style="font-size:10px;color:#888;margin-bottom:14px">
           Los PINs están hardcodeados en el archivo <code style="color:#c8a96e">index.html</code>.<br>
           Para cambiarlos: editá el archivo en GitHub, buscá las líneas abajo y cambiá el número.
@@ -3912,7 +3963,7 @@ function renderConfig(el){
 
       <!-- Backend URL -->
       <div style="background:var(--ink);border-radius:2px;padding:22px 24px;border-left:3px solid #2a4a2a;">
-        <div style="font-size:8px;letter-spacing:.3em;text-transform:uppercase;color:#555;margin-bottom:14px">☁ Google Sheets Backend</div>
+        <div style="font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:#5a5040;font-weight:600;margin-bottom:14px">☁ Google Sheets Backend</div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
           <input id="config-backend-url" type="url" value="${BACKEND_URL}"
             placeholder="URL del Apps Script..."
