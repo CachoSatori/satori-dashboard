@@ -602,7 +602,8 @@ function load(key, def){
     const v = localStorage.getItem(key);
     return v ? JSON.parse(v) : def;
   } catch(e) {
-    console.warn('Error leyendo localStorage:', key, e);
+    console.warn('localStorage corrupto en', key, '— reseteando');
+    localStorage.removeItem(key);
     return def;
   }
 }
@@ -1417,6 +1418,7 @@ function moduleBreadcrumb(module, section) {
 }
 
 function fi(n){ return n!=null?'₡'+Math.round(n).toLocaleString('es-CR'):'—'; }
+function esc(s){ return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 function pct(a,b){ if(!b) return null; return ((a-b)/b*100).toFixed(1); }
 function fmtDate(d){
   if(!d) return '—';
@@ -4129,8 +4131,8 @@ function renderActivas(){
     card.innerHTML=`
       <div class="comp-head">
         <div>
-          <div class="comp-name">${comp.nombre}</div>
-          <div style="font-size:9px;color:#555;margin-top:3px">${estado} · ${fmtDate(comp.inicio)} → ${fmtDate(comp.fin)}</div>
+          <div class="comp-name">${esc(comp.nombre)}</div>
+          <div style="font-size:9px;color:#555;margin-top:3px">${esc(estado)} · ${fmtDate(comp.inicio)} → ${fmtDate(comp.fin)}</div>
         </div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <span class="comp-badge badge-${comp.tipo}">${comp.tipo}</span>
@@ -4518,7 +4520,7 @@ function renderMisCompetencias(el){
     card.className='comp-card';
     card.innerHTML=`
       <div class="comp-head">
-        <div><div class="comp-name">${comp.nombre}</div></div>
+        <div><div class="comp-name">${esc(comp.nombre)}</div></div>
         <div style="display:flex;gap:8px;align-items:center">
           <span class="comp-badge badge-${comp.tipo}">${comp.tipo}</span>
           ${comp.premio?`<span style="color:var(--gold);font-size:10px">🏅 ${comp.premio}</span>`:''}
@@ -6816,7 +6818,7 @@ function renderMixTableMulti(el, allPMs, allTots, masterPM, canal, search, CMP_C
             trP.onmouseenter=function(){this.style.background='rgba(200,169,110,.06)';};
             trP.onmouseleave=function(){this.style.background=bgP;};
             var p0 = trP.insertCell(); p0.style.cssText = 'padding:6px 10px 6px 40px;color:var(--paper);font-size:10px;word-break:break-word;';
-            p0.innerHTML = p.nombre + ' <span style="font-size:7px;letter-spacing:.06em;text-transform:uppercase;color:'+tipColor+';padding:1px 4px;border:1px solid '+tipColor+'44;border-radius:2px;margin-left:4px;">'+p.tipo+'</span>';
+            p0.innerHTML = esc(p.nombre) + ' <span style="font-size:7px;letter-spacing:.06em;text-transform:uppercase;color:'+tipColor+';padding:1px 4px;border:1px solid '+tipColor+'44;border-radius:2px;margin-left:4px;">'+esc(p.tipo)+'</span>';
             prodTots.forEach(function(pm, i) {
               var col = CMP_COLORS[i % CMP_COLORS.length];
               var pctT = allTots[i].totG ? (pm/allTots[i].totG*100) : 0;
@@ -7246,7 +7248,7 @@ function renderMixTable(el, PMA, PMB, totsA, totsB, canal, search, lblA, lblB, c
               var pColor = pctColor(pct);
               var clColorP = pctClas>30?'#7ec8a0':pctClas>10?'#c8a96e':'#888';
               trP.innerHTML =
-                '<td style="padding:7px 10px 7px 42px;color:var(--paper);font-size:10px;word-break:break-word;">'+p.nombre+'</td>' +
+                '<td style="padding:7px 10px 7px 42px;color:var(--paper);font-size:10px;word-break:break-word;">'+esc(p.nombre)+'</td>' +
                 '<td style="padding:7px 10px;text-align:right;color:#888;font-size:10px;">'+Math.round(p.unidades).toLocaleString('es-CR')+'</td>' +
                 '<td style="padding:7px 10px;text-align:right;color:var(--paper);font-size:10px;">'+(pm?'₡'+Math.round(pm).toLocaleString('es-CR'):'—')+'</td>' +
                 '<td style="padding:7px 10px;text-align:right;overflow:hidden;">' +
@@ -7270,7 +7272,7 @@ function renderMixTable(el, PMA, PMB, totsA, totsB, canal, search, lblA, lblB, c
               var clColorPA = pctClas>30?'#7ec8a0':pctClas>10?'#c8a96e':'#888';
               var clColorPB = pctClasB>30?'#7ec8a0':pctClasB>10?'#c8a96e':'#888';
               trP.innerHTML =
-                '<td style="padding:7px 8px 7px 38px;color:var(--paper);font-size:10px;word-break:break-word;">'+p.nombre+'</td>' +
+                '<td style="padding:7px 8px 7px 38px;color:var(--paper);font-size:10px;word-break:break-word;">'+esc(p.nombre)+'</td>' +
                 // Período A
                 '<td style="padding:7px 8px;text-align:right;color:var(--gold);font-size:10px;">'+(pm?'₡'+Math.round(pm).toLocaleString('es-CR'):'—')+'</td>' +
                 '<td style="padding:7px 8px;text-align:right;overflow:hidden;">' +
@@ -7384,7 +7386,7 @@ function renderNoVendidos(el, PM) {
     var tipo = entry[0], prods = entry[1];
     var tipColor = tipo==='bebida'?'#7ec8a0':tipo==='comida'?'var(--gold)':tipo==='merchandising'||tipo==='nofood'?'#c890e8':tipo==='local club'?'#d4a84b':'#555';
     prods.forEach(function(p) {
-      listHtml += '<span style="font-size:9px;color:'+tipColor+';background:#0a0a0a;padding:2px 8px;border:1px solid '+tipColor+'22;border-radius:2px;">' + p.nombre + '</span>';
+      listHtml += '<span style="font-size:9px;color:'+tipColor+';background:#0a0a0a;padding:2px 8px;border:1px solid '+tipColor+'22;border-radius:2px;">' + esc(p.nombre) + '</span>';
     });
   });
   listHtml += '</div>';
