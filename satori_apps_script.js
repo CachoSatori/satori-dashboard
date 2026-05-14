@@ -1,26 +1,56 @@
 // ═══════════════════════════════════════════════════════════════
-// SATORI DASHBOARD · Google Apps Script Backend v2.1
+// SATORI · Google Apps Script Backend v3.0
+// Incluye: Dashboard de Ventas (v2.4) + Módulo Caja (v1.0)
 // ═══════════════════════════════════════════════════════════════
 
-const SHEET_NAME_DIAS  = 'dias';
-const SHEET_NAME_COMPS = 'comps';
-const SHEET_NAME_META  = 'meta';
-const SECRET_KEY       = 'satori2026';
+// ── Hojas: Dashboard Ventas ───────────────────────────────────
+const SHEET_NAME_DIAS      = 'dias';
+const SHEET_NAME_COMPS     = 'comps';
+const SHEET_NAME_META      = 'meta';
+const SHEET_NAME_PRODUCTOS = 'productos';
+const SHEET_NAME_HIST      = 'historico';
+const SHEET_NAME_ANUAL     = 'anual';
 
-// GET → lecturas (getDias, getComps, ping)
+// ── Hojas: Módulo Caja ────────────────────────────────────────
+const SHEET_TURNOS         = 'turnos';
+const SHEET_MOVS           = 'movimientos';
+const SHEET_PROV_CAJA      = 'proveedores_caja';
+const SHEET_CATS_CAJA      = 'categorias_caja';
+
+const SECRET_KEY = 'satori2026';
+
+// ══════════════════════════════════════════════════════════════
+// doGet — todas las acciones de lectura
+// ══════════════════════════════════════════════════════════════
 function doGet(e) {
   const output = ContentService.createTextOutput();
   output.setMimeType(ContentService.MimeType.JSON);
   try {
     const params = e.parameter || {};
-    if (params.key !== SECRET_KEY) {
+    if (params.key !== SECRET_KEY)
       return output.setContent(JSON.stringify({ ok:false, error:'Unauthorized' }));
-    }
     const action = params.action;
     let result = { ok:false, error:'Unknown action' };
-    if      (action === 'ping')      result = { ok:true, msg:'Satori backend online' };
-    else if (action === 'getDias')   result = getDias();
-    else if (action === 'getComps')  result = getComps();
+
+    // ── Dashboard Ventas ──────────────────────────────────────
+    if      (action === 'ping')         result = { ok:true, msg:'Satori backend v3.0 online' };
+    else if (action === 'getDias')      result = getDias();
+    else if (action === 'getComps')     result = getComps();
+    else if (action === 'getMetas')     result = getMetas();
+    else if (action === 'getProductos') result = getProductos();
+    else if (action === 'getHist')      result = getHist();
+    else if (action === 'getAnual')     result = getAnual();
+    else if (action === 'saveMetas') {
+      const d = params.data ? decodeURIComponent(params.data) : null;
+      result = saveMetas_sheet(d);
+    }
+    // ── Módulo Caja ───────────────────────────────────────────
+    else if (action === 'getTurnos')       result = getTurnos(params);
+    else if (action === 'getMovimientos')  result = getMovimientos(params);
+    else if (action === 'getProvCaja')     result = getProvCaja();
+    else if (action === 'getCatsCaja')     result = getCatsCaja();
+    else if (action === 'getCierresTurno') result = getCierresTurno(params);
+
     output.setContent(JSON.stringify(result));
   } catch(err) {
     output.setContent(JSON.stringify({ ok:false, error:err.toString() }));
@@ -28,31 +58,41 @@ function doGet(e) {
   return output;
 }
 
-// POST → escrituras (saveDia, deleteDia, saveComps)
+// ══════════════════════════════════════════════════════════════
+// doPost — todas las acciones de escritura
+// ══════════════════════════════════════════════════════════════
 function doPost(e) {
   const output = ContentService.createTextOutput();
   output.setMimeType(ContentService.MimeType.JSON);
   try {
     let params = {};
-    // Leer del body del POST
-    if (e.postData && e.postData.contents) {
-      params = JSON.parse(e.postData.contents);
-    }
-    // Fallback a query string
-    if (!params.action && e.parameter) {
-      Object.assign(params, e.parameter);
-    }
-    
-    console.log('POST action:', params.action, '| fecha:', params.fecha);
-    
-    if (params.key !== SECRET_KEY) {
+    if (e.postData && e.postData.contents) params = JSON.parse(e.postData.contents);
+    if (!params.action && e.parameter) Object.assign(params, e.parameter);
+    if (params.key !== SECRET_KEY)
       return output.setContent(JSON.stringify({ ok:false, error:'Unauthorized' }));
-    }
     const action = params.action;
     let result = { ok:false, error:'Unknown action' };
-    if      (action === 'saveDia')   result = saveDia(params.fecha, params.data);
-    else if (action === 'deleteDia') result = deleteDia(params.fecha);
-    else if (action === 'saveComps') result = saveComps(params.data);
+
+    // ── Dashboard Ventas ──────────────────────────────────────
+    if      (action === 'saveDia')        result = saveDia(params.fecha, params.data);
+    else if (action === 'saveHist')       result = saveHist(params.data);
+    else if (action === 'saveAnual')      result = saveAnual(params.data);
+    else if (action === 'deleteDia')      result = deleteDia(params.fecha);
+    else if (action === 'saveComps')      result = saveComps(params.data);
+    else if (action === 'saveMetas')      result = saveMetas_sheet(params.data);
+    else if (action === 'saveProductos')  result = saveProductos(params.data);
+    else if (action === 'parseProductos') result = parseProductos(params.filedata, params.filename);
+    // ── Módulo Caja ───────────────────────────────────────────
+    else if (action === 'saveTurno')       result = saveTurno(params.data);
+    else if (action === 'saveMovimiento')  result = saveMovimiento(params.data);
+    else if (action === 'deleteMovimiento')result = deleteMovimiento(params.id);
+    else if (action === 'updateMovEstado') result = updateMovEstado(params.id, params.estado);
+    else if (action === 'saveProvCaja')    result = saveProvCaja(params.data);
+    else if (action === 'deleteProvCaja')  result = deleteProvCaja(params.id);
+    else if (action === 'saveCatCaja')     result = saveCatCaja(params.data);
+    else if (action === 'deleteCatCaja')   result = deleteCatCaja(params.id);
+    else if (action === 'saveCierreTurno') result = saveCierreTurno(params.data);
+
     output.setContent(JSON.stringify(result));
   } catch(err) {
     console.error('doPost error:', err.toString());
@@ -61,16 +101,23 @@ function doPost(e) {
   return output;
 }
 
-// ── Inicializar hojas ──────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════
+// INIT — crear todas las hojas necesarias
+// ══════════════════════════════════════════════════════════════
 function initSheets() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  [SHEET_NAME_DIAS, SHEET_NAME_COMPS, SHEET_NAME_META].forEach(name => {
+
+  // ── Dashboard Ventas ──────────────────────────────────────
+  const ventasSheets = [
+    SHEET_NAME_DIAS, SHEET_NAME_COMPS, SHEET_NAME_META,
+    SHEET_NAME_PRODUCTOS, SHEET_NAME_HIST, SHEET_NAME_ANUAL
+  ];
+  ventasSheets.forEach(name => {
     if (!ss.getSheetByName(name)) {
       const sheet = ss.insertSheet(name);
       if (name === SHEET_NAME_DIAS) {
         sheet.getRange(1,1,1,3).setValues([['fecha','uploadedAt','data']]);
         sheet.setFrozenRows(1);
-        // Force column A (fecha) to plain text so Sheets never auto-converts dates
         sheet.getRange('A:A').setNumberFormat('@STRING@');
       } else if (name === SHEET_NAME_COMPS) {
         sheet.getRange(1,1,1,2).setValues([['id','data']]);
@@ -78,12 +125,101 @@ function initSheets() {
       } else if (name === SHEET_NAME_META) {
         sheet.getRange(1,1,1,2).setValues([['key','value']]);
         sheet.setFrozenRows(1);
+      } else if (name === SHEET_NAME_PRODUCTOS) {
+        sheet.getRange(1,1,1,6).setValues([['nombre','tipo','clasificacion','subclasificacion','multiplicador','updatedAt']]);
+        sheet.setFrozenRows(1);
+      } else if (name === SHEET_NAME_HIST) {
+        sheet.getRange(1,1,1,2).setValues([['key','data']]);
+        sheet.setFrozenRows(1);
+      } else if (name === SHEET_NAME_ANUAL) {
+        sheet.getRange(1,1,1,3).setValues([['periodo','updatedAt','data']]);
+        sheet.setFrozenRows(1);
       }
     }
   });
+
+  // ── Módulo Caja ──────────────────────────────────────────
+  if (!ss.getSheetByName(SHEET_TURNOS)) {
+    const s = ss.insertSheet(SHEET_TURNOS);
+    s.getRange(1,1,1,12).setValues([[
+      'id','fecha','turno','empleado',
+      'caja_asignada_crc','caja_asignada_usd',
+      'adicionales_json','pagos_json',
+      'efectivo_cierre_crc','efectivo_cierre_usd',
+      'notas','timestamp'
+    ]]);
+    s.setFrozenRows(1);
+  }
+
+  if (!ss.getSheetByName(SHEET_MOVS)) {
+    const s = ss.insertSheet(SHEET_MOVS);
+    s.getRange(1,1,1,16).setValues([[
+      'id','fecha','turno','tipo','categoria','subcategoria',
+      'proveedor_id','proveedor_nombre',
+      'empleado_id','empleado_nombre',
+      'monto_crc','monto_usd','metodo',
+      'caja_origen','estado','referencia','notas','timestamp'
+    ]]);
+    s.setFrozenRows(1);
+  }
+
+  if (!ss.getSheetByName(SHEET_PROV_CAJA)) {
+    const s = ss.insertSheet(SHEET_PROV_CAJA);
+    s.getRange(1,1,1,9).setValues([[
+      'id','nombre','categoria','moneda',
+      'ciclo_pago','metodo_pago','cuenta_iban','notas','activo'
+    ]]);
+    s.setFrozenRows(1);
+  }
+
+  if (!ss.getSheetByName(SHEET_CATS_CAJA)) {
+    const s = ss.insertSheet(SHEET_CATS_CAJA);
+    s.getRange(1,1,1,4).setValues([['id','tipo','nombre','activo']]);
+    s.setFrozenRows(1);
+    // Insertar categorías predeterminadas
+    const defaults = [
+      // Ingresos
+      ['Ingreso','Ventas efectivo mediodía'],
+      ['Ingreso','Ventas efectivo noche'],
+      ['Ingreso','SINPE delivery'],
+      ['Ingreso','Bitcoin'],
+      ['Ingreso','Ingreso de cambio'],
+      ['Ingreso','Otros ingresos'],
+      // Egresos mercadería
+      ['Egreso - Mercadería','Proveedor mercadería'],
+      // Egresos personal
+      ['Egreso - Personal','Adelanto de salario'],
+      ['Egreso - Personal','Salario pendiente'],
+      ['Egreso - Personal','Propinas por tarjeta'],
+      ['Egreso - Personal','Otros pagos personal'],
+      // Egresos operativos
+      ['Egreso - Operativo','Mantenimiento'],
+      ['Egreso - Operativo','Servicios (agua/luz/internet)'],
+      ['Egreso - Operativo','Gas'],
+      ['Egreso - Operativo','Seguridad'],
+      ['Egreso - Operativo','Librería y papelería'],
+      ['Egreso - Operativo','Decoración'],
+      ['Egreso - Operativo','Herramientas cocina'],
+      ['Egreso - Operativo','Gastos médicos'],
+      ['Egreso - Operativo','Otros gastos operativos'],
+      // Socios
+      ['Egreso - Socios','Retiro de socios'],
+      ['Egreso - Socios','Gastos de socios'],
+      // Traspasos
+      ['Traspaso','Registradora → Caja Fuerte'],
+      ['Traspaso','Caja Fuerte → Banco'],
+      ['Traspaso','Caja Fuerte → Caja Proveedores'],
+      ['Traspaso','Banco → Caja Fuerte'],
+      ['Traspaso','Otro traspaso'],
+    ];
+    const rows = defaults.map((d,i) => [String(i+1), d[0], d[1], true]);
+    s.getRange(2, 1, rows.length, 4).setValues(rows);
+  }
 }
 
-// ── DIAS ──────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════
+// DIAS (Dashboard Ventas)
+// ══════════════════════════════════════════════════════════════
 function getDias() {
   initSheets();
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME_DIAS);
@@ -91,19 +227,14 @@ function getDias() {
   if (rows.length <= 1) return { ok:true, dias:{} };
   const dias = {};
   for (let i = 1; i < rows.length; i++) {
-    const [fecha, uploadedAt, dataStr] = rows[i];
+    const [fecha, , dataStr] = rows[i];
     if (!fecha) continue;
-    // Force fecha to YYYY-MM-DD string (Sheets may return Date objects)
     let fechaStr = String(fecha);
     if (fecha instanceof Date) {
-      const y = fecha.getFullYear();
-      const m = String(fecha.getMonth()+1).padStart(2,'0');
-      const d = String(fecha.getDate()).padStart(2,'0');
-      fechaStr = `${y}-${m}-${d}`;
+      fechaStr = `${fecha.getFullYear()}-${String(fecha.getMonth()+1).padStart(2,'0')}-${String(fecha.getDate()).padStart(2,'0')}`;
     } else {
-      // Extract YYYY-MM-DD from any string format
-      const match = fechaStr.match(/(\d{4})-(\d{2})-(\d{2})/);
-      if (match) fechaStr = `${match[1]}-${match[2]}-${match[3]}`;
+      const m = fechaStr.match(/(\d{4})-(\d{2})-(\d{2})/);
+      if (m) fechaStr = `${m[1]}-${m[2]}-${m[3]}`;
     }
     try { dias[fechaStr] = JSON.parse(dataStr); } catch(e) {}
   }
@@ -112,29 +243,34 @@ function getDias() {
 
 function saveDia(fecha, dataStr) {
   if (!fecha || !dataStr) return { ok:false, error:'Missing fecha or data' };
-  // Ensure fecha is always stored as plain YYYY-MM-DD string
-  const match = String(fecha).match(/(\d{4})-(\d{2})-(\d{2})/);
-  const cleanFecha = match ? `${match[1]}-${match[2]}-${match[3]}` : String(fecha);
-  fecha = cleanFecha;
+  const m = String(fecha).match(/(\d{4})-(\d{2})-(\d{2})/);
+  fecha = m ? `${m[1]}-${m[2]}-${m[3]}` : String(fecha);
   initSheets();
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME_DIAS);
   const rows  = sheet.getDataRange().getValues();
-  // Normalize existing row keys for comparison
   for (let i = 1; i < rows.length; i++) {
-    let rowFecha = String(rows[i][0]);
+    let rf = String(rows[i][0]);
     if (rows[i][0] instanceof Date) {
       const d = rows[i][0];
-      rowFecha = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      rf = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     }
-    if (rowFecha === String(fecha)) {
+    if (rf === fecha) {
       sheet.getRange(i+1, 2, 1, 2).setValues([[new Date().toISOString(), dataStr]]);
       return { ok:true, action:'updated', fecha };
     }
   }
-  const newRow = sheet.appendRow([fecha, new Date().toISOString(), dataStr]);
-  // Force fecha cell to text to prevent auto-conversion
-  const lastRow = sheet.getLastRow();
-  sheet.getRange(lastRow, 1).setNumberFormat('@STRING@');
+  let insertPos = rows.length + 1;
+  for (let i = 1; i < rows.length; i++) {
+    let rf = String(rows[i][0]);
+    if (rows[i][0] instanceof Date) {
+      const d = rows[i][0];
+      rf = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    }
+    if (rf && rf > fecha) { insertPos = i + 1; break; }
+  }
+  if (insertPos <= rows.length) sheet.insertRowBefore(insertPos);
+  sheet.getRange(insertPos, 1).setNumberFormat('@STRING@');
+  sheet.getRange(insertPos, 1, 1, 3).setValues([[fecha, new Date().toISOString(), dataStr]]);
   return { ok:true, action:'created', fecha };
 }
 
@@ -144,15 +280,94 @@ function deleteDia(fecha) {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME_DIAS);
   const rows  = sheet.getDataRange().getValues();
   for (let i = 1; i < rows.length; i++) {
-    if (String(rows[i][0]) === String(fecha)) {
-      sheet.deleteRow(i+1);
-      return { ok:true, action:'deleted', fecha };
-    }
+    if (String(rows[i][0]) === String(fecha)) { sheet.deleteRow(i+1); return { ok:true, action:'deleted', fecha }; }
   }
   return { ok:false, error:'Fecha not found' };
 }
 
-// ── COMPETENCIAS ──────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════
+// HISTORICO
+// ══════════════════════════════════════════════════════════════
+function getHist() {
+  initSheets();
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME_HIST);
+  const rows  = sheet.getDataRange().getValues();
+  if (rows.length <= 1) return { ok:true, hist:{} };
+  for (let i = 1; i < rows.length; i++) {
+    if (rows[i][0] === 'hist') {
+      try { return { ok:true, hist: JSON.parse(rows[i][1]) }; } catch(e) {}
+    }
+  }
+  return { ok:true, hist:{} };
+}
+
+function saveHist(dataStr) {
+  if (!dataStr) return { ok:false, error:'Missing data' };
+  initSheets();
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME_HIST);
+  const rows  = sheet.getDataRange().getValues();
+  let newData = {};
+  try { newData = JSON.parse(dataStr); } catch(e) { return { ok:false, error:'Invalid JSON' }; }
+  for (let i = 1; i < rows.length; i++) {
+    if (rows[i][0] === 'hist') {
+      let existing = {};
+      try { existing = JSON.parse(rows[i][1]); } catch(e) {}
+      const merged = Object.assign({}, existing, newData);
+      sheet.getRange(i+1, 2).setValue(JSON.stringify(merged));
+      return { ok:true, action:'updated', totalKeys:Object.keys(merged).length };
+    }
+  }
+  sheet.appendRow(['hist', dataStr]);
+  return { ok:true, action:'created', totalKeys:Object.keys(newData).length };
+}
+
+// ══════════════════════════════════════════════════════════════
+// ANUAL
+// ══════════════════════════════════════════════════════════════
+function getAnual() {
+  initSheets();
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME_ANUAL);
+  const rows  = sheet.getDataRange().getValues();
+  if (rows.length <= 1) return { ok:true, anual:{} };
+  const anual = {};
+  for (let i = 1; i < rows.length; i++) {
+    const periodo = String(rows[i][0]||'').trim();
+    if (!periodo) continue;
+    try { anual[periodo] = JSON.parse(rows[i][2]); } catch(e) {}
+  }
+  return { ok:true, anual };
+}
+
+function saveAnual(dataStr) {
+  if (!dataStr) return { ok:false, error:'Missing data' };
+  initSheets();
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME_ANUAL);
+  const rows  = sheet.getDataRange().getValues();
+  let newData = {};
+  try { newData = JSON.parse(dataStr); } catch(e) { return { ok:false, error:'Invalid JSON' }; }
+  const now = new Date().toISOString();
+  const updated = [], created = [];
+  const rowIndex = {};
+  for (let i = 1; i < rows.length; i++) {
+    const p = String(rows[i][0]||'').trim();
+    if (p) rowIndex[p] = i + 1;
+  }
+  for (const [periodo, items] of Object.entries(newData)) {
+    const itemsStr = JSON.stringify(items);
+    if (rowIndex[periodo]) {
+      sheet.getRange(rowIndex[periodo], 2, 1, 2).setValues([[now, itemsStr]]);
+      updated.push(periodo);
+    } else {
+      sheet.appendRow([periodo, now, itemsStr]);
+      created.push(periodo);
+    }
+  }
+  return { ok:true, updated, created, totalPeriodos:Object.keys(newData).length };
+}
+
+// ══════════════════════════════════════════════════════════════
+// COMPETENCIAS
+// ══════════════════════════════════════════════════════════════
 function getComps() {
   initSheets();
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME_COMPS);
@@ -171,11 +386,553 @@ function saveComps(dataStr) {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME_COMPS);
   const rows  = sheet.getDataRange().getValues();
   for (let i = 1; i < rows.length; i++) {
-    if (rows[i][0] === 'all') {
-      sheet.getRange(i+1, 2).setValue(dataStr);
-      return { ok:true, action:'updated' };
-    }
+    if (rows[i][0] === 'all') { sheet.getRange(i+1, 2).setValue(dataStr); return { ok:true, action:'updated' }; }
   }
   sheet.appendRow(['all', dataStr]);
   return { ok:true, action:'created' };
+}
+
+// ══════════════════════════════════════════════════════════════
+// METAS
+// ══════════════════════════════════════════════════════════════
+function getMetas() {
+  initSheets();
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME_META);
+  const rows = sheet.getDataRange().getValues();
+  for (let i = 1; i < rows.length; i++) {
+    if (rows[i][0] === 'metas') {
+      try { return { ok:true, metas: JSON.parse(rows[i][1]) }; } catch(e) {}
+    }
+  }
+  return { ok:true, metas:{} };
+}
+
+function saveMetas_sheet(dataStr) {
+  if (!dataStr) return { ok:false, error:'Missing data' };
+  initSheets();
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME_META);
+  const rows = sheet.getDataRange().getValues();
+  for (let i = 1; i < rows.length; i++) {
+    if (rows[i][0] === 'metas') { sheet.getRange(i+1, 2).setValue(dataStr); return { ok:true, action:'updated' }; }
+  }
+  sheet.appendRow(['metas', dataStr]);
+  return { ok:true, action:'created' };
+}
+
+// ══════════════════════════════════════════════════════════════
+// PRODUCTOS
+// ══════════════════════════════════════════════════════════════
+function getProductos() {
+  initSheets();
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME_PRODUCTOS);
+  const rows  = sheet.getDataRange().getValues();
+  if (rows.length <= 1) return { ok:true, productos:{}, count:0 };
+  const productos = {};
+  for (let i = 1; i < rows.length; i++) {
+    const nombre = (rows[i][0]||'').toString().trim().toUpperCase();
+    const tipo   = (rows[i][1]||'').toString().trim();
+    const clas   = (rows[i][2]||'').toString().trim();
+    const subcl  = (rows[i][3]||'').toString().trim();
+    const mult   = parseFloat(rows[i][4]) || 1;
+    if (nombre && tipo) productos[nombre] = { tipo, clas, subcl, mult };
+  }
+  return { ok:true, productos, count:Object.keys(productos).length };
+}
+
+function saveProductos(dataStr) {
+  initSheets();
+  const items = JSON.parse(dataStr);
+  if (!Array.isArray(items)) return { ok:false, error:'Expected array' };
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME_PRODUCTOS);
+  const now   = new Date().toISOString();
+  const lastRow = sheet.getLastRow();
+  if (lastRow > 1) sheet.getRange(2, 1, lastRow - 1, 6).clearContent();
+  const rows = items.filter(p => p.nombre && p.tipo).map(p =>
+    [p.nombre.toUpperCase().trim(), p.tipo, (p.clas||'').trim(), (p.subcl||'').trim(), p.mult||1, now]
+  );
+  if (rows.length > 0) sheet.getRange(2, 1, rows.length, 6).setValues(rows);
+  return { ok:true, count:rows.length };
+}
+
+function parseProductos(dataStr, filename) {
+  const NON_FOOD = ['REMERAS','TSHIRTS','T-DARUMAS','T-GORRAS','T-STICKERS','GIFT CARDS','A PAX'];
+  const BEV      = ['BEBIDAS'];
+  const CORT     = ['X CORTESIAS'];
+  const PERS     = ['PERSONAL','XX DUEÑOS'];
+  try {
+    const decoded  = Utilities.base64Decode(dataStr);
+    const blob     = Utilities.newBlob(decoded, MimeType.MICROSOFT_EXCEL, filename||'productos.xlsx');
+    const tempFile = Drive.Files.insert(
+      { title:'_tmp_productos', mimeType:MimeType.GOOGLE_SHEETS }, blob, { convert:true }
+    );
+    const ss    = SpreadsheetApp.openById(tempFile.id);
+    const sheet = ss.getSheets()[0];
+    const data  = sheet.getDataRange().getValues();
+    DriveApp.getFileById(tempFile.id).setTrashed(true);
+    if (data.length < 2) return { ok:false, error:'Archivo vacío' };
+    const header  = data[0].map(h => (h||'').toString().trim());
+    const iNombre = header.indexOf('Nombre');
+    const iClas   = header.indexOf('NombreClasificacion');
+    const iSubcl  = header.indexOf('NombreSubClasificacion');
+    if (iNombre < 0 || iClas < 0) return { ok:false, error:'Columnas no encontradas' };
+    const seen = {};
+    for (let r = 1; r < data.length; r++) {
+      const nombre = (data[r][iNombre]||'').toString().trim().toUpperCase();
+      const cat    = (data[r][iClas]  ||'').toString().trim().toUpperCase();
+      const subcl  = iSubcl >= 0 ? (data[r][iSubcl]||'').toString().trim() : '';
+      if (!nombre || !cat || nombre === 'NOMBRE') continue;
+      if (seen[nombre]) continue;
+      let tipo;
+      if      (NON_FOOD.includes(cat)) tipo = 'nofood';
+      else if (BEV.includes(cat))      tipo = 'bebida';
+      else if (CORT.includes(cat))     tipo = 'cortesia';
+      else if (PERS.includes(cat))     tipo = 'personal';
+      else                              tipo = 'comida';
+      seen[nombre] = { tipo, clas:cat, subcl };
+    }
+    const items = Object.entries(seen).map(([nombre,info]) => ({
+      nombre, tipo:info.tipo, clas:info.clas, subcl:info.subcl
+    }));
+    saveProductos(JSON.stringify(items.map(p=>({nombre:p.nombre,tipo:p.tipo,clas:p.clas,subcl:p.subcl}))));
+    const counts = {};
+    items.forEach(p => { counts[p.tipo] = (counts[p.tipo]||0)+1; });
+    return { ok:true, items, count:items.length, counts };
+  } catch(e) {
+    return { ok:false, error:e.toString() };
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// MÓDULO CAJA: TURNOS
+// ══════════════════════════════════════════════════════════════
+function saveTurno(dataStr) {
+  initSheets();
+  const data = JSON.parse(dataStr);
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_TURNOS);
+  const id  = data.id || Date.now().toString();
+  const now = new Date().toISOString();
+
+  const rows = sheet.getDataRange().getValues();
+  for (let i = 1; i < rows.length; i++) {
+    if (String(rows[i][0]) === String(id)) {
+      sheet.getRange(i+1, 1, 1, 12).setValues([[
+        id, data.fecha, data.turno, data.empleado,
+        data.caja_asignada_crc||0, data.caja_asignada_usd||0,
+        JSON.stringify(data.adicionales||[]),
+        JSON.stringify(data.pagos||[]),
+        data.efectivo_cierre_crc||0, data.efectivo_cierre_usd||0,
+        data.notas||'', now
+      ]]);
+      syncPagosTurno(id, data.fecha, data.turno, data.empleado, data.pagos||[]);
+      return { ok:true, action:'updated', id };
+    }
+  }
+  // Asegurar que fecha se guarda como string
+  const fechaStr = String(data.fecha).slice(0,10);
+  sheet.appendRow([
+    id, fechaStr, data.turno, data.empleado,
+    data.caja_asignada_crc||0, data.caja_asignada_usd||0,
+    JSON.stringify(data.adicionales||[]),
+    JSON.stringify(data.pagos||[]),
+    data.efectivo_cierre_crc||0, data.efectivo_cierre_usd||0,
+    data.notas||'', now
+  ]);
+  syncPagosTurno(id, data.fecha, data.turno, data.empleado, data.pagos||[]);
+  return { ok:true, action:'created', id };
+}
+
+function getTurnos(params) {
+  initSheets();
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_TURNOS);
+  const rows  = sheet.getDataRange().getValues();
+  if (rows.length <= 1) return { ok:true, turnos:[] };
+  const from = params?.from || '';
+  const to   = params?.to   || '';
+  const turnos = [];
+  for (let i = 1; i < rows.length; i++) {
+    const rawF = rows[i][1];
+    let fecha;
+    if (rawF instanceof Date) {
+      fecha = Utilities.formatDate(rawF, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+    } else if (typeof rawF === 'number' && rawF > 40000) {
+      // Serial numérico de Sheets → convertir
+      const d = new Date(Date.UTC(1899, 11, 30) + rawF * 86400000);
+      fecha = d.getUTCFullYear() + '-' + String(d.getUTCMonth()+1).padStart(2,'0') + '-' + String(d.getUTCDate()).padStart(2,'0');
+    } else {
+      const m = String(rawF).match(/(\d{4})-(\d{2})-(\d{2})/);
+      fecha = m ? m[1]+'-'+m[2]+'-'+m[3] : String(rawF).slice(0,10);
+    }
+    if (from && fecha < from) continue;
+    if (to   && fecha > to)   continue;
+    let fechaTNorm = fecha;
+    if (fecha instanceof Date) {
+      fechaTNorm = Utilities.formatDate(fecha, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+    } else {
+      const mt = String(fecha).match(/(\d{4})-(\d{2})-(\d{2})/);
+      if (mt) fechaTNorm = mt[1]+'-'+mt[2]+'-'+mt[3];
+    }
+    turnos.push({
+      id: String(rows[i][0]), fecha: fechaTNorm,
+      turno:               rows[i][2],
+      empleado:            rows[i][3],
+      caja_asignada_crc:   rows[i][4],
+      caja_asignada_usd:   rows[i][5],
+      adicionales:         tryParse(rows[i][6], []),
+      pagos:               tryParse(rows[i][7], []),
+      efectivo_cierre_crc: rows[i][8],
+      efectivo_cierre_usd: rows[i][9],
+      notas:               rows[i][10],
+      timestamp:           rows[i][11],
+    });
+  }
+  return { ok:true, turnos };
+}
+
+function syncPagosTurno(turnoId, fecha, turno, empleado, pagos) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_MOVS);
+  const rows  = sheet.getDataRange().getValues();
+  // Borrar movimientos previos de este turno (solo mercadería)
+  for (let i = rows.length - 1; i >= 1; i--) {
+    if (String(rows[i][0]).startsWith(turnoId + '_') && rows[i][4] === 'Egreso - Mercadería') {
+      sheet.deleteRow(i + 1);
+    }
+  }
+  const now = new Date().toISOString();
+  pagos.forEach(p => {
+    sheet.appendRow([
+      turnoId + '_' + (p.id||Date.now()),
+      fecha, turno, 'Egreso', 'Egreso - Mercadería', 'Proveedor mercadería',
+      p.proveedor_id||'', p.proveedor_nombre||'',
+      '', empleado,
+      p.monto_crc||0, p.monto_usd||0, p.metodo||'Efectivo',
+      'Caja Proveedores', p.estado||'Pagado',
+      p.referencia||'', p.notas||'', now
+    ]);
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+// MÓDULO CAJA: MOVIMIENTOS GENERALES
+// ══════════════════════════════════════════════════════════════
+function saveMovimiento(dataStr) {
+  initSheets();
+  const data = JSON.parse(dataStr);
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_MOVS);
+  const id  = data.id || Date.now().toString();
+  const now = new Date().toISOString();
+
+  const rows = sheet.getDataRange().getValues();
+  for (let i = 1; i < rows.length; i++) {
+    if (String(rows[i][0]) === String(id)) {
+      sheet.getRange(i+1, 1, 1, 18).setValues([[
+        id, data.fecha, data.turno||'', data.tipo, data.categoria, data.subcategoria||'',
+        data.proveedor_id||'', data.proveedor_nombre||'',
+        data.empleado_id||'', data.empleado_nombre||'',
+        data.monto_crc||0, data.monto_usd||0, data.metodo||'',
+        data.caja_origen||'', data.estado||'Pagado',
+        data.referencia||'', data.notas||'', now
+      ]]);
+      return { ok:true, action:'updated', id };
+    }
+  }
+  const fechaMovStr = String(data.fecha||'').slice(0,10);
+  // CRÍTICO: transferencias siempre Pendiente, nunca sobreescribir con Pagado
+  const estadoFinal = data.estado ||
+    (data.metodo === 'Transferencia' ? 'Pendiente' : 'Pagado');
+  sheet.appendRow([
+    id, fechaMovStr, data.turno||'', data.tipo, data.categoria, data.subcategoria||'',
+    data.proveedor_id||'', data.proveedor_nombre||'',
+    data.empleado_id||'', data.empleado_nombre||'',
+    data.monto_crc||0, data.monto_usd||0, data.metodo||'',
+    data.caja_origen||'', estadoFinal,
+    data.referencia||'', data.notas||'', now
+  ]);
+  return { ok:true, action:'created', id };
+}
+
+function updateMovEstado(id, estado) {
+  initSheets();
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_MOVS);
+  const rows  = sheet.getDataRange().getValues();
+  for (let i = 1; i < rows.length; i++) {
+    if (String(rows[i][0]) === String(id)) {
+      sheet.getRange(i+1, 15).setValue(estado);
+      return { ok:true };
+    }
+  }
+  return { ok:false, error:'Not found' };
+}
+
+function deleteMovimiento(id) {
+  initSheets();
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_MOVS);
+  const rows  = sheet.getDataRange().getValues();
+  for (let i = 1; i < rows.length; i++) {
+    if (String(rows[i][0]) === String(id)) {
+      sheet.deleteRow(i + 1);
+      return { ok:true };
+    }
+  }
+  return { ok:false, error:'Not found' };
+}
+
+function getMovimientos(params) {
+  initSheets();
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_MOVS);
+  const rows  = sheet.getDataRange().getValues();
+  if (rows.length <= 1) return { ok:true, movimientos:[] };
+  const from = params?.from || '';
+  const to   = params?.to   || '';
+  const prov = params?.prov || '';
+  const movs = [];
+  for (let i = 1; i < rows.length; i++) {
+    // Normalizar fecha ANTES del filtro (puede ser Date object de Sheets)
+    const rawFecha = rows[i][1];
+    const fecha = (rawFecha instanceof Date)
+      ? Utilities.formatDate(rawFecha, Session.getScriptTimeZone(), 'yyyy-MM-dd')
+      : String(rawFecha).match(/(\d{4}-\d{2}-\d{2})/) ? rawFecha.toString().match(/(\d{4}-\d{2}-\d{2})/)[1] : String(rawFecha);
+    if (from && fecha < from) continue;
+    if (to   && fecha > to)   continue;
+    if (prov && String(rows[i][6]) !== prov && String(rows[i][7]) !== prov) continue;
+    // Normalizar fecha a YYYY-MM-DD siempre
+    let fechaNorm = fecha;
+    if (fecha instanceof Date) {
+      fechaNorm = Utilities.formatDate(fecha, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+    } else {
+      const m = String(fecha).match(/(\d{4})-(\d{2})-(\d{2})/);
+      if (m) fechaNorm = m[1]+'-'+m[2]+'-'+m[3];
+    }
+    movs.push({
+      id: String(rows[i][0]), fecha: fechaNorm,
+      turno:             rows[i][2],
+      tipo:              rows[i][3],
+      categoria:         rows[i][4],
+      subcategoria:      rows[i][5],
+      proveedor_id:      rows[i][6],
+      proveedor_nombre:  rows[i][7],
+      empleado_id:       rows[i][8],
+      empleado_nombre:   rows[i][9],
+      monto_crc:         rows[i][10],
+      monto_usd:         rows[i][11],
+      metodo:            rows[i][12],
+      caja_origen:       rows[i][13],
+      estado:            rows[i][14],
+      referencia:        rows[i][15],
+      notas:             rows[i][16],
+      timestamp:         rows[i][17],
+    });
+  }
+  return { ok:true, movimientos:movs };
+}
+
+// ══════════════════════════════════════════════════════════════
+// MÓDULO CAJA: PROVEEDORES
+// ══════════════════════════════════════════════════════════════
+function saveProvCaja(dataStr) {
+  initSheets();
+  const data  = JSON.parse(dataStr);
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_PROV_CAJA);
+  const id    = data.id || Date.now().toString();
+
+  const rows = sheet.getDataRange().getValues();
+  for (let i = 1; i < rows.length; i++) {
+    if (String(rows[i][0]) === String(id)) {
+      sheet.getRange(i+1, 1, 1, 9).setValues([[
+        id, data.nombre, data.categoria, data.moneda||'CRC',
+        data.ciclo_pago||'Semanal', data.metodo_pago||'Efectivo',
+        data.cuenta_iban||'', data.notas||'', data.activo!==false
+      ]]);
+      return { ok:true, action:'updated', id };
+    }
+  }
+  sheet.appendRow([
+    id, data.nombre, data.categoria, data.moneda||'CRC',
+    data.ciclo_pago||'Semanal', data.metodo_pago||'Efectivo',
+    data.cuenta_iban||'', data.notas||'', true
+  ]);
+  return { ok:true, action:'created', id };
+}
+
+function deleteProvCaja(id) {
+  initSheets();
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_PROV_CAJA);
+  const rows  = sheet.getDataRange().getValues();
+  for (let i = 1; i < rows.length; i++) {
+    if (String(rows[i][0]) === String(id)) {
+      sheet.getRange(i+1, 9).setValue(false);
+      return { ok:true };
+    }
+  }
+  return { ok:false, error:'Not found' };
+}
+
+function getProvCaja() {
+  initSheets();
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_PROV_CAJA);
+  const rows  = sheet.getDataRange().getValues();
+  if (rows.length <= 1) return { ok:true, proveedores:[] };
+  return {
+    ok: true,
+    proveedores: rows.slice(1).map(r => ({
+      id:r[0], nombre:r[1], categoria:r[2], moneda:r[3],
+      ciclo_pago:r[4], metodo_pago:r[5], cuenta_iban:r[6],
+      notas:r[7], activo:r[8]
+    }))
+  };
+}
+
+// ══════════════════════════════════════════════════════════════
+// MÓDULO CAJA: CATEGORÍAS (dinámicas, agregar/quitar)
+// ══════════════════════════════════════════════════════════════
+function getCatsCaja() {
+  initSheets();
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_CATS_CAJA);
+  const rows  = sheet.getDataRange().getValues();
+  if (rows.length <= 1) return { ok:true, categorias:[] };
+  return {
+    ok: true,
+    categorias: rows.slice(1)
+      .filter(r => r[3] !== false)
+      .map(r => ({ id:String(r[0]), tipo:r[1], nombre:r[2], activo:r[3] }))
+  };
+}
+
+function saveCatCaja(dataStr) {
+  initSheets();
+  const data  = JSON.parse(dataStr);
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_CATS_CAJA);
+  const id    = data.id || Date.now().toString();
+
+  const rows = sheet.getDataRange().getValues();
+  for (let i = 1; i < rows.length; i++) {
+    if (String(rows[i][0]) === String(id)) {
+      sheet.getRange(i+1, 1, 1, 4).setValues([[id, data.tipo, data.nombre, data.activo!==false]]);
+      return { ok:true, action:'updated', id };
+    }
+  }
+  sheet.appendRow([id, data.tipo, data.nombre, true]);
+  return { ok:true, action:'created', id };
+}
+
+function deleteCatCaja(id) {
+  initSheets();
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_CATS_CAJA);
+  const rows  = sheet.getDataRange().getValues();
+  for (let i = 1; i < rows.length; i++) {
+    if (String(rows[i][0]) === String(id)) {
+      sheet.getRange(i+1, 4).setValue(false);
+      return { ok:true };
+    }
+  }
+  return { ok:false, error:'Not found' };
+}
+
+// ══════════════════════════════════════════════════════════════
+// UTILIDADES
+// ══════════════════════════════════════════════════════════════
+function tryParse(str, def) {
+  try { return typeof str === 'string' ? JSON.parse(str) : (str || def); }
+  catch(e) { return def; }
+}
+
+// ══════════════════════════════════════════════════════════════
+// CIERRES DE TURNO (Manager)
+// ══════════════════════════════════════════════════════════════
+const SHEET_CIERRES = 'cierres_turno';
+
+function saveCierreTurno(dataStr) {
+  initSheets();
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  if (!ss.getSheetByName(SHEET_CIERRES)) {
+    const s = ss.insertSheet(SHEET_CIERRES);
+    s.getRange(1,1,1,29).setValues([[
+      'id','fecha','manager','tipo_cambio','tipo',
+      'vm_crc','vm_usd','ef_real_m_crc',
+      'propinas_m_crc','otros_m_crc',
+      'vn_crc','vn_usd','ef_real_n_crc',
+      'propinas_n_crc','otros_n_crc',
+      'sep_diaria_crc','sep_diaria_usd',
+      'sep_reg_crc','sep_reg_usd',
+      'remanente_crc','remanente_usd',
+      'total_contado_crc','total_contado_usd',
+      'cf_anterior_crc','deberia_haber_crc',
+      'diferencia_crc','diferencia_usd',
+      'notas','timestamp'
+    ]]);
+    s.setFrozenRows(1);
+  }
+  const data = JSON.parse(dataStr);
+  const sheet = ss.getSheetByName(SHEET_CIERRES);
+  const id = data.id || ('cd_'+Date.now());
+  const now = new Date().toISOString();
+  const difCRC = data.diferencia_crc || 0;
+  const difUSD = data.diferencia_usd || 0;
+
+  // Verificar si ya existe (update) o es nuevo (insert)
+  const rows = sheet.getDataRange().getValues();
+  for (let i = 1; i < rows.length; i++) {
+    if (String(rows[i][0]) === String(id)) {
+      sheet.getRange(i+1,1,1,29).setValues([[
+        id, data.fecha, data.manager, data.tipo_cambio||530, data.tipo||'completo',
+        data.vm_crc||0, data.vm_usd||0, data.ef_real_m_crc||0,
+        data.propinas_m_crc||0, data.otros_m_crc||0,
+        data.vn_crc||0, data.vn_usd||0, data.ef_real_n_crc||0,
+        data.propinas_n_crc||0, data.otros_n_crc||0,
+        data.sep_diaria_crc||0, data.sep_diaria_usd||0,
+        data.sep_reg_crc||0, data.sep_reg_usd||0,
+        data.remanente_crc||0, data.remanente_usd||0,
+        data.total_contado_crc||0, data.total_contado_usd||0,
+        data.cf_anterior_crc||0, data.deberia_haber_crc||0,
+        difCRC, difUSD, data.notas||'', now
+      ]]);
+      return { ok:true, action:'updated', id };
+    }
+  }
+  sheet.appendRow([
+    id, data.fecha, data.manager, data.tipo_cambio||530, data.tipo||'completo',
+    data.vm_crc||0, data.vm_usd||0, data.ef_real_m_crc||0,
+    data.propinas_m_crc||0, data.otros_m_crc||0,
+    data.vn_crc||0, data.vn_usd||0, data.ef_real_n_crc||0,
+    data.propinas_n_crc||0, data.otros_n_crc||0,
+    data.sep_diaria_crc||0, data.sep_diaria_usd||0,
+    data.sep_reg_crc||0, data.sep_reg_usd||0,
+    data.remanente_crc||0, data.remanente_usd||0,
+    data.total_contado_crc||0, data.total_contado_usd||0,
+    data.cf_anterior_crc||0, data.deberia_haber_crc||0,
+    difCRC, difUSD, data.notas||'', now
+  ]);
+  return { ok:true, action:'created', id };
+}
+
+function getCierresTurno(params) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  if (!ss.getSheetByName(SHEET_CIERRES)) return { ok:true, cierres:[] };
+  const sheet = ss.getSheetByName(SHEET_CIERRES);
+  const rows = sheet.getDataRange().getValues();
+  if (rows.length <= 1) return { ok:true, cierres:[] };
+  const from = params?.from || '';
+  const to   = params?.to   || '';
+  const cierres = [];
+  for (let i = 1; i < rows.length; i++) {
+    const rawF = rows[i][1];
+    const fecha = (rawF instanceof Date) ? Utilities.formatDate(rawF, Session.getScriptTimeZone(), "yyyy-MM-dd") : String(rawF).slice(0,10);
+    if (from && fecha < from) continue;
+    if (to   && fecha > to)   continue;
+    cierres.push({
+      id:rows[i][0], fecha, manager:rows[i][2],
+      tipo_cambio:rows[i][3], tipo:rows[i][4]||'completo',
+      vm_crc:rows[i][5], vm_usd:rows[i][6], ef_real_m_crc:rows[i][7],
+      propinas_m_crc:rows[i][8], otros_m_crc:rows[i][9],
+      vn_crc:rows[i][10], vn_usd:rows[i][11], ef_real_n_crc:rows[i][12],
+      propinas_n_crc:rows[i][13], otros_n_crc:rows[i][14],
+      sep_diaria_crc:rows[i][15], sep_diaria_usd:rows[i][16],
+      sep_reg_crc:rows[i][17], sep_reg_usd:rows[i][18],
+      remanente_crc:rows[i][19], remanente_usd:rows[i][20],
+      total_contado_crc:rows[i][21], total_contado_usd:rows[i][22],
+      cf_anterior_crc:rows[i][23], deberia_haber_crc:rows[i][24],
+      diferencia_crc:rows[i][25], diferencia_usd:rows[i][26],
+      notas:rows[i][27], timestamp:rows[i][28]
+    });
+  }
+  return { ok:true, cierres };
 }
