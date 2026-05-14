@@ -1209,6 +1209,7 @@ const OWNER_TABS = [
   {id:'competencias', label:'Competencias',    module:'team'},
   {id:'evaluacion2',  label:'Gestión equipo',  module:'team'},
   // ADMIN
+  {id:'empleados',    label:'Empleados',       module:'admin'},
   {id:'config',       label:'Config',          module:'admin'},
 ];
 const SAL_TABS = [
@@ -1353,6 +1354,7 @@ function renderView(id){
   else if(id==='analisis') renderAnalisis(el);
   else if(id==='mix') renderMixVentas(el);
   else if(id==='evaluacion2') renderEquipoGestion(el);
+  else if(id==='empleados') renderEmpleados(el);
   else if(id==='config') renderConfig(el);
   else if(id==='competencias') renderCompetencias(el);
   else if(id==='mi-dia') renderMiDia(el);
@@ -8222,6 +8224,132 @@ function buildEGContent(from, to) {
   });
   tbl.appendChild(tb);
   el.appendChild(tbl);
+}
+
+// ══════════════════════════════════════════════════════════════
+// EMPLEADOS (Owner · Admin)
+// ══════════════════════════════════════════════════════════════
+let _empleados = [];
+
+async function renderEmpleados(el) {
+  el.innerHTML = `<div style="max-width:700px">
+    <div class="sl-header"><div class="sl">Gestión de Empleados</div></div>
+    <div id="emp-status" style="font-size:11px;color:#888;margin-bottom:16px">Cargando...</div>
+    <div id="emp-list"></div>
+    <button onclick="openEmpModal()" style="margin-top:12px;padding:10px 20px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.15em;text-transform:uppercase;font-weight:700;cursor:pointer;border-radius:2px;border:none;background:#0d0d0d;color:#c8a96e">
+      + Agregar empleado
+    </button>
+  </div>`;
+
+  try {
+    const r = await apiPost({ action:'getEmpleados' });
+    if (r?.ok) {
+      _empleados = r.empleados || [];
+      renderEmpList();
+      document.getElementById('emp-status').textContent = _empleados.length + ' empleados registrados';
+    } else {
+      document.getElementById('emp-status').textContent = 'Error al cargar';
+    }
+  } catch(e) {
+    document.getElementById('emp-status').textContent = 'Sin conexión';
+  }
+}
+
+function renderEmpList() {
+  const list = document.getElementById('emp-list');
+  if (!list) return;
+  const activos   = _empleados.filter(e => e.activo !== false && e.activo !== 'false');
+  const inactivos = _empleados.filter(e => e.activo === false || e.activo === 'false');
+
+  const row = e => `
+    <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid #eee;${e.activo===false||e.activo==='false'?'opacity:.45':''}">
+      <div style="flex:1">
+        <div style="font-weight:700;font-size:13px">${e.nombre}</div>
+        <div style="font-size:10px;color:#888;margin-top:2px">${e.rol||'Sin rol asignado'}</div>
+      </div>
+      <div style="font-size:9px;padding:3px 8px;border-radius:2px;background:${e.activo!==false&&e.activo!=='false'?'#e8f5ec':'#f5f0e8'};color:${e.activo!==false&&e.activo!=='false'?'#2a7a4a':'#888'}">
+        ${e.activo!==false&&e.activo!=='false'?'Activo':'Inactivo'}
+      </div>
+      <button onclick="openEmpModal('${e.id}')" style="padding:5px 12px;font-size:9px;font-family:'DM Mono',monospace;cursor:pointer;border-radius:2px;border:1px solid #d4cfc4;background:#fff">Editar</button>
+      <button onclick="toggleEmpActivo('${e.id}')" style="padding:5px 12px;font-size:9px;font-family:'DM Mono',monospace;cursor:pointer;border-radius:2px;border:1px solid #f0b0b0;background:#fff;color:#c23b22">
+        ${e.activo!==false&&e.activo!=='false'?'Desactivar':'Reactivar'}
+      </button>
+    </div>`;
+
+  list.innerHTML = `
+    <div style="background:#fff;border:1px solid #d4cfc4;border-radius:2px;overflow:hidden">
+      ${activos.map(row).join('')}
+      ${inactivos.length ? `<div style="padding:8px 16px;font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:#aaa;background:#faf8f4;border-top:1px solid #eee">Inactivos</div>${inactivos.map(row).join('')}` : ''}
+      ${_empleados.length===0?'<div style="padding:24px;text-align:center;color:#aaa;font-size:12px">Sin empleados. Agregá el primero.</div>':''}
+    </div>`;
+}
+
+function openEmpModal(id) {
+  const emp = id ? _empleados.find(e => e.id === id) : null;
+  const existing = document.getElementById('modal-empleado');
+  if (existing) existing.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'modal-empleado';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:2000;display:flex;align-items:center;justify-content:center;padding:20px';
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:4px;padding:28px;width:100%;max-width:420px;font-family:DM Mono,monospace">
+      <div style="font-size:14px;font-weight:700;margin-bottom:20px">${emp ? 'Editar empleado' : 'Nuevo empleado'}</div>
+      <div style="margin-bottom:14px">
+        <div style="font-size:8px;letter-spacing:.2em;text-transform:uppercase;color:#888;margin-bottom:5px">Nombre</div>
+        <input id="emp-nombre" value="${emp?.nombre||''}" placeholder="Nombre completo" style="width:100%;padding:9px 12px;border:1px solid #d4cfc4;border-radius:2px;font-family:DM Mono,monospace;font-size:12px">
+      </div>
+      <div style="margin-bottom:20px">
+        <div style="font-size:8px;letter-spacing:.2em;text-transform:uppercase;color:#888;margin-bottom:5px">Rol</div>
+        <select id="emp-rol" style="width:100%;padding:9px 12px;border:1px solid #d4cfc4;border-radius:2px;font-family:DM Mono,monospace;font-size:12px">
+          <option ${emp?.rol==='Salonero'?'selected':''}>Salonero</option>
+          <option ${emp?.rol==='Cajero'?'selected':''}>Cajero</option>
+          <option ${emp?.rol==='Cocinero'?'selected':''}>Cocinero</option>
+          <option ${emp?.rol==='Encargado'?'selected':''}>Encargado</option>
+          <option ${emp?.rol==='Administración'?'selected':''}>Administración</option>
+          <option ${emp?.rol==='Otro'?'selected':''}>Otro</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button onclick="document.getElementById('modal-empleado').remove()" style="padding:9px 18px;font-family:DM Mono,monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;border-radius:2px;border:1px solid #d4cfc4;background:#fff">Cancelar</button>
+        <button onclick="saveEmpModal('${emp?.id||''}')" style="padding:9px 18px;font-family:DM Mono,monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;border-radius:2px;border:none;background:#0d0d0d;color:#c8a96e;font-weight:700">Guardar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  document.getElementById('emp-nombre').focus();
+}
+
+async function saveEmpModal(existingId) {
+  const nombre = document.getElementById('emp-nombre')?.value?.trim();
+  const rol    = document.getElementById('emp-rol')?.value || '';
+  if (!nombre) { alert('Ingresá un nombre'); return; }
+
+  const data = {
+    id: existingId || 'emp_' + Date.now(),
+    nombre, rol, activo: true,
+    timestamp: new Date().toISOString()
+  };
+
+  const r = await apiPost({ action:'saveEmpleado', data: JSON.stringify(data) });
+  if (r?.ok) {
+    document.getElementById('modal-empleado')?.remove();
+    const idx = _empleados.findIndex(e => e.id === data.id);
+    if (idx >= 0) _empleados[idx] = data; else _empleados.push(data);
+    renderEmpList();
+    document.getElementById('emp-status').textContent = _empleados.length + ' empleados registrados';
+  } else {
+    alert('Error al guardar. Intentá de nuevo.');
+  }
+}
+
+async function toggleEmpActivo(id) {
+  const emp = _empleados.find(e => e.id === id);
+  if (!emp) return;
+  const nuevoEstado = emp.activo === false || emp.activo === 'false';
+  if (!nuevoEstado && !confirm('¿Desactivar este empleado?')) return;
+  emp.activo = nuevoEstado;
+  await apiPost({ action:'saveEmpleado', data: JSON.stringify(emp) });
+  renderEmpList();
 }
 
 function renderConfig(el){
