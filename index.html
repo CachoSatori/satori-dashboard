@@ -8308,15 +8308,24 @@ function openEmpModal(id) {
         <div style="font-size:8px;letter-spacing:.2em;text-transform:uppercase;color:#888;margin-bottom:5px">Nombre</div>
         <input id="emp-nombre" value="${emp?.nombre||''}" placeholder="Nombre completo" style="width:100%;padding:9px 12px;border:1px solid #d4cfc4;border-radius:2px;font-family:DM Mono,monospace;font-size:12px">
       </div>
-      <div style="margin-bottom:20px">
+      <div style="margin-bottom:14px">
         <div style="font-size:8px;letter-spacing:.2em;text-transform:uppercase;color:#888;margin-bottom:5px">Rol</div>
         <select id="emp-rol" style="width:100%;padding:9px 12px;border:1px solid #d4cfc4;border-radius:2px;font-family:DM Mono,monospace;font-size:12px">
-          <option ${emp?.rol==='Salonero'?'selected':''}>Salonero</option>
-          <option ${emp?.rol==='Cajero'?'selected':''}>Cajero</option>
-          <option ${emp?.rol==='Cocinero'?'selected':''}>Cocinero</option>
-          <option ${emp?.rol==='Encargado'?'selected':''}>Encargado</option>
-          <option ${emp?.rol==='Administración'?'selected':''}>Administración</option>
-          <option ${emp?.rol==='Otro'?'selected':''}>Otro</option>
+          <option value="sin_asignar" ${!emp?.rol||emp?.rol==='sin_asignar'?'selected':''}>Sin asignar</option>
+          <option value="salonero"  ${emp?.rol==='salonero'?'selected':''}>Salonero</option>
+          <option value="barman"    ${emp?.rol==='barman'?'selected':''}>Barman</option>
+          <option value="barback"   ${emp?.rol==='barback'?'selected':''}>Barback</option>
+          <option value="runner"    ${emp?.rol==='runner'?'selected':''}>Runner</option>
+          <option value="cocina"    ${emp?.rol==='cocina'?'selected':''}>Cocina</option>
+          <option value="cajero"    ${emp?.rol==='cajero'?'selected':''}>Cajero</option>
+          <option value="manager"   ${emp?.rol==='manager'?'selected':''}>Manager</option>
+        </select>
+      </div>
+      <div style="margin-bottom:20px">
+        <div style="font-size:8px;letter-spacing:.2em;text-transform:uppercase;color:#888;margin-bottom:5px">Estado</div>
+        <select id="emp-activo" style="width:100%;padding:9px 12px;border:1px solid #d4cfc4;border-radius:2px;font-family:DM Mono,monospace;font-size:12px">
+          <option value="true"  ${emp?.activo!==false&&emp?.activo!=='false'?'selected':''}>Activo</option>
+          <option value="false" ${emp?.activo===false||emp?.activo==='false'?'selected':''}>Inactivo</option>
         </select>
       </div>
       <div style="display:flex;gap:10px;justify-content:flex-end">
@@ -8330,12 +8339,14 @@ function openEmpModal(id) {
 
 async function saveEmpModal(existingId) {
   const nombre = document.getElementById('emp-nombre')?.value?.trim();
-  const rol    = document.getElementById('emp-rol')?.value || '';
+  const rol    = document.getElementById('emp-rol')?.value || 'sin_asignar';
+  const activo = document.getElementById('emp-activo')?.value !== 'false';
   if (!nombre) { alert('Ingresá un nombre'); return; }
 
   const data = {
     id: existingId || 'emp_' + Date.now(),
-    nombre, rol, activo: true,
+    nombre: nombre.toUpperCase(),
+    rol, activo,
     timestamp: new Date().toISOString()
   };
 
