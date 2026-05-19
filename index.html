@@ -491,6 +491,33 @@ header{
 .ratio-mid { color:#c8a030; font-weight:700; }
 .ratio-low { color:var(--blue);  font-weight:700; }
 .ratio-high{ color:var(--red);   font-weight:700; }
+/* ── MIS PROPINAS ── */
+.prop-table{width:100%;border-collapse:collapse;margin-top:0;}
+.prop-table th{font-size:8px;letter-spacing:.15em;text-transform:uppercase;color:#555;
+  padding:8px 12px;border-bottom:1px solid var(--border);text-align:left;font-weight:600;}
+.prop-table th.r{text-align:right;}
+.prop-table th.c{text-align:center;}
+.prop-table td{padding:11px 12px;border-bottom:1px solid #1a1a1a;font-size:12px;vertical-align:middle;}
+.prop-table td.r{text-align:right;}
+.prop-table td.c{text-align:center;}
+.prop-table tr:hover td{background:rgba(255,255,255,.025);}
+.prop-table tfoot td{padding:12px;border-top:1px solid var(--border);font-weight:700;}
+.prop-mes-label{font-weight:700;color:var(--text);}
+.prop-mes-anio{font-size:9px;color:#555;margin-left:4px;}
+.prop-cur-badge{font-size:7px;letter-spacing:.12em;color:var(--teal);
+  border:1px solid var(--teal);padding:2px 6px;border-radius:1px;margin-left:8px;vertical-align:middle;}
+.prop-gold{color:var(--gold);font-weight:700;}
+.prop-muted{color:#555;}
+.prop-bar-wrap{width:80px;height:5px;background:#1e1e1e;border-radius:3px;
+  display:inline-block;vertical-align:middle;margin-right:8px;}
+.prop-bar-fill{height:100%;background:var(--teal);border-radius:3px;}
+.prop-q-hdr{font-size:8px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--gold);padding:6px 12px 4px;background:rgba(200,169,110,.06);
+  border-bottom:1px solid #1e1e1e;grid-column:1/-1;}
+.prop-section{background:var(--ink);border:1px solid var(--border);
+  border-radius:2px;margin-bottom:20px;overflow:hidden;}
+.prop-section-title{font-size:9px;letter-spacing:.2em;text-transform:uppercase;
+  color:#555;padding:14px 16px 0;font-weight:700;}
 </style>
 </head>
 <body>
@@ -1217,6 +1244,7 @@ const SAL_TABS = [
   {id:'mi-semana',        label:'Mi semana',     module:'ops' },
   {id:'mi-historial',     label:'Mi historial',  module:'fin' },
   {id:'mis-competencias', label:'Competencias',  module:'team'},
+  {id:'mis-propinas',     label:'Mis propinas',  module:'fin' },
 ];
 
 // Active module state
@@ -1361,6 +1389,7 @@ function renderView(id){
   else if(id==='mi-historial') renderMiHistorial(el);
   else if(id==='mi-semana') renderMiSemana(el);
   else if(id==='mis-competencias') renderMisCompetencias(el);
+  else if(id==='mis-propinas')    renderMisPropinas(el);
   requestAnimationFrame(fitKpiVals);
   // Wrap tables for mobile scroll
   document.querySelectorAll('.rt').forEach(t => {
@@ -4497,6 +4526,149 @@ function applyMiHistorial(){
     drawChart(canvas,dates,seriesData,colors,vis,chartWrap);
   },50);
 }
+
+// ── MIS PROPINAS ─────────────────────────────────────────────────────────────
+const _MESES_P = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+                  'Julio','Agosto','Setiembre','Octubre','Noviembre','Diciembre'];
+
+function _normFecha(f) {
+  if(!f) return '';
+  const s = String(f);
+  if(/^\d{4}-\d{2}-\d{2}/.test(s)) return s.substring(0,10);
+  try { const d=new Date(s); if(!isNaN(d.getTime())) return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; } catch(e){}
+  return s;
+}
+
+async function renderMisPropinas(el) {
+  const name = CURRENT_USER;
+  el.innerHTML = moduleBreadcrumb('fin','Mis Propinas') +
+    `<div style="padding:40px;text-align:center;color:#555;font-size:11px">Cargando propinas...</div>`;
+
+  const r = await apiCall({ action:'getTurnosPropinas' });
+  const turnos = (r?.data || []).map(t => ({ ...t, fecha: _normFecha(t.fecha) }));
+
+  // Agregar por mes y quincena
+  const byMes = {}; // "2026-05" → { q1:{dias,total}, q2:{dias,total} }
+  turnos.forEach(t => {
+    const linea = (t.datos?.lineas || []).find(l => l.nombre === name);
+    if(!linea) return;
+    const mes = t.fecha.substring(0,7);
+    const day = parseInt(t.fecha.split('-')[2]||'0');
+    if(!byMes[mes]) byMes[mes] = { q1:{dias:0,total:0}, q2:{dias:0,total:0} };
+    const q = day <= 15 ? 'q1' : 'q2';
+    byMes[mes][q].dias++;
+    byMes[mes][q].total += linea.take_home || 0;
+  });
+
+  const meses = Object.keys(byMes).sort().reverse();
+
+  if(!meses.length) {
+    el.innerHTML = moduleBreadcrumb('fin','Mis Propinas') +
+      emptyState('₡','Sin propinas registradas','Aún no hay turnos cargados para este empleado');
+    return;
+  }
+
+  // Totales generales
+  const totalAcum = meses.reduce((s,m) => s + byMes[m].q1.total + byMes[m].q2.total, 0);
+  const diasAcum  = meses.reduce((s,m) => s + byMes[m].q1.dias  + byMes[m].q2.dias,  0);
+
+  // Mes actual
+  const now    = new Date();
+  const curKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const cur    = byMes[curKey];
+  const curTotal = cur ? cur.q1.total + cur.q2.total : 0;
+  const curDias  = cur ? cur.q1.dias  + cur.q2.dias  : 0;
+
+  // Máximo mensual para barras
+  const maxMes = Math.max(...meses.map(m => byMes[m].q1.total + byMes[m].q2.total));
+
+  let html = moduleBreadcrumb('fin','Mis Propinas');
+
+  // KPIs
+  html += `<div class="kpi-grid" style="margin-bottom:28px">
+    <div class="kpi">
+      <div class="kpi-label">Este mes</div>
+      <div class="kpi-val">${fi(curTotal)}</div>
+      <div class="kpi-sub">${curDias} día${curDias!==1?'s':''} trabajado${curDias!==1?'s':''}</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Promedio / día</div>
+      <div class="kpi-val">${curDias>0 ? fi(Math.round(curTotal/curDias)) : '—'}</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Total acumulado</div>
+      <div class="kpi-val" style="color:var(--gold)">${fi(totalAcum)}</div>
+      <div class="kpi-sub">${diasAcum} días totales</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Prom histórico / día</div>
+      <div class="kpi-val">${diasAcum>0 ? fi(Math.round(totalAcum/diasAcum)) : '—'}</div>
+    </div>
+  </div>`;
+
+  // Tabla mensual con quincenas
+  html += `<div class="prop-section">
+    <div class="prop-section-title">Historial mensual — por quincena</div>
+    <table class="prop-table" style="margin-top:12px">
+      <thead>
+        <tr>
+          <th>Mes</th>
+          <th class="c">Q1 días<br><span style="color:#444;font-size:7px">1–15</span></th>
+          <th class="r">Q1 total</th>
+          <th class="r">Q1 prom/día</th>
+          <th class="c">Q2 días<br><span style="color:#444;font-size:7px">16–31</span></th>
+          <th class="r">Q2 total</th>
+          <th class="r">Q2 prom/día</th>
+          <th class="r">Total mes</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${meses.map(m => {
+          const d = byMes[m];
+          const [y, mo] = m.split('-');
+          const mesTotal = d.q1.total + d.q2.total;
+          const mesDias  = d.q1.dias  + d.q2.dias;
+          const q1avg    = d.q1.dias > 0 ? Math.round(d.q1.total/d.q1.dias) : null;
+          const q2avg    = d.q2.dias > 0 ? Math.round(d.q2.total/d.q2.dias) : null;
+          const barPct   = maxMes > 0 ? Math.round(mesTotal/maxMes*100) : 0;
+          const esCur    = m === curKey;
+          return `<tr style="${esCur?'background:rgba(200,169,110,.04)':''}">
+            <td>
+              <span class="prop-mes-label">${_MESES_P[parseInt(mo)-1]}</span>
+              <span class="prop-mes-anio">${y}</span>
+              ${esCur ? '<span class="prop-cur-badge">HOY</span>' : ''}
+            </td>
+            <td class="c prop-muted">${d.q1.dias||'—'}</td>
+            <td class="r">${d.q1.total>0 ? fi(d.q1.total) : '<span class="prop-muted">—</span>'}</td>
+            <td class="r prop-muted">${q1avg ? fi(q1avg) : '—'}</td>
+            <td class="c prop-muted">${d.q2.dias||'—'}</td>
+            <td class="r">${d.q2.total>0 ? fi(d.q2.total) : '<span class="prop-muted">—</span>'}</td>
+            <td class="r prop-muted">${q2avg ? fi(q2avg) : '—'}</td>
+            <td class="r">
+              <span class="prop-bar-wrap"><span class="prop-bar-fill" style="width:${barPct}%"></span></span>
+              <span class="prop-gold">${fi(mesTotal)}</span>
+            </td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td><span style="letter-spacing:.1em;font-size:10px">TOTAL</span></td>
+          <td class="c">${meses.reduce((s,m)=>s+byMes[m].q1.dias,0)}</td>
+          <td class="r prop-gold">${fi(meses.reduce((s,m)=>s+byMes[m].q1.total,0))}</td>
+          <td class="r prop-muted">${fi(Math.round(meses.reduce((s,m)=>s+byMes[m].q1.total,0)/Math.max(1,meses.reduce((s,m)=>s+byMes[m].q1.dias,0))))}</td>
+          <td class="c">${meses.reduce((s,m)=>s+byMes[m].q2.dias,0)}</td>
+          <td class="r prop-gold">${fi(meses.reduce((s,m)=>s+byMes[m].q2.total,0))}</td>
+          <td class="r prop-muted">${fi(Math.round(meses.reduce((s,m)=>s+byMes[m].q2.total,0)/Math.max(1,meses.reduce((s,m)=>s+byMes[m].q2.dias,0))))}</td>
+          <td class="r"><span class="prop-gold" style="font-size:14px">${fi(totalAcum)}</span></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>`;
+
+  el.innerHTML = html;
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 function renderMisCompetencias(el){
   const name=CURRENT_USER;
