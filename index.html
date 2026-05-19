@@ -1097,9 +1097,9 @@ async function buildLogin(){
 }
 
 const PRIVILEGED_ROLES = [
-  { key:'owner',    label:'Dueño',    sub:'Acceso completo',   avatar:'D', cls:'own', pin:true },
-  { key:'manager',  label:'Manager',  sub:'Gestión operativa', avatar:'M', cls:'mgr', pin:true },
-  { key:'contador', label:'Contador', sub:'Reportes financieros', avatar:'C', cls:'cnt', pin:true },
+  { key:'owner',    label:'Dueño',     sub:'Acceso completo',      avatar:'D', cls:'own', pin:true },
+  { key:'manager',  label:'Manager',   sub:'Gestión operativa',    avatar:'M', cls:'mgr', pin:true },
+  { key:'ggeneral', label:'G.General', sub:'Finanzas y reportes',  avatar:'G', cls:'cnt', pin:true },
 ];
 
 function filterLogin(val) {
@@ -1215,7 +1215,7 @@ function setPinManager(pin){
 function showPinModal(target){
   _pinTarget = target;
   _pinBuffer = '';
-  const titles = { owner:'🔑 PIN Dueño', manager:'⚙ PIN Manager', contador:'📊 PIN Contador' };
+  const titles = { owner:'🔑 PIN Dueño', manager:'⚙ PIN Manager', ggeneral:'📊 PIN G.General' };
   document.getElementById('pin-modal-title').textContent = titles[target] || 'PIN';
   document.getElementById('pin-error').textContent = '';
   document.getElementById('pin-error').textContent = '';
@@ -1274,8 +1274,8 @@ function checkPin(){
     ok = true; role = 'owner'; user = 'Dueño';
   } else if(_pinTarget === 'manager' && _pinBuffer === MANAGER_PIN){
     ok = true; role = 'manager'; user = 'Manager';
-  } else if(_pinTarget === 'contador' && _pinBuffer === CONTADOR_PIN){
-    ok = true; role = 'contador'; user = 'Contador';
+  } else if(_pinTarget === 'ggeneral' && _pinBuffer === CONTADOR_PIN){
+    ok = true; role = 'ggeneral'; user = 'G.General';
   }
 
   if(ok){
@@ -1326,8 +1326,8 @@ function showApp(){
   document.getElementById('screen-app').classList.add('active');
   document.getElementById('header-user').textContent = CURRENT_USER;
   const badge = document.getElementById('mode-badge');
-  const badgeLabels = { owner:'OWNER', manager:'MANAGER', contador:'CONTADOR', salonero:'SALONERO' };
-  const badgeCls    = { owner:' own', manager:'', contador:' cnt', salonero:' sal' };
+  const badgeLabels = { owner:'OWNER', manager:'MANAGER', ggeneral:'G.GENERAL', salonero:'SALONERO' };
+  const badgeCls    = { owner:' own', manager:'', ggeneral:' cnt', salonero:' sal' };
   badge.textContent = badgeLabels[MODE] || MODE.toUpperCase();
   badge.className   = 'logo-mode' + (badgeCls[MODE] || '');
   buildNav();
@@ -1355,22 +1355,18 @@ const MODULE_DEFS_OWNER = [
 ];
 
 const MANAGER_TABS = [
-  // OPERACIONES
+  // OPERACIONES (hoy + financiero operativo)
   {id:'resumen',      label:'Hoy',            module:'ops' },
-  {id:'saloneros',    label:'Equipo',          module:'ops' },
-  {id:'cajeros',      label:'Cajeros',         module:'ops' },
-  {id:'semana',       label:'Calendario',      module:'ops' },
+  {id:'contabilidad', label:'Ventas',          module:'ops' },
+  {id:'historico',    label:'Histórico',       module:'ops' },
+  {id:'mix',          label:'Mix Ventas',      module:'ops' },
+  {id:'analisis',     label:'Análisis',        module:'ops' },
   {id:'xls',          label:'Cargar XLS',      module:'ops' },
-  // FINANZAS
-  {id:'contabilidad',       label:'Ventas',          module:'fin' },
-  {id:'analisis',           label:'Análisis',        module:'fin' },
-  {id:'historico',          label:'Histórico',       module:'fin' },
-  {id:'mix',                label:'Mix Ventas',      module:'fin' },
-  {id:'evaluacion',         label:'Metas',           module:'fin' },
-  {id:'propinas-gerencial', label:'Propinas',        module:'fin' },
   // EQUIPO
-  {id:'competencias', label:'Competencias',    module:'team'},
-  {id:'evaluacion2',  label:'Gestión equipo',  module:'team'},
+  {id:'saloneros',          label:'Equipo',          module:'team'},
+  {id:'evaluacion2',        label:'Gestión equipo',  module:'team'},
+  {id:'competencias',       label:'Competencias',    module:'team'},
+  {id:'propinas-gerencial', label:'Propinas',        module:'team'},
 ];
 const OWNER_TABS = [
   // OPERACIONES
@@ -1393,13 +1389,14 @@ const OWNER_TABS = [
   {id:'empleados',    label:'Empleados',       module:'admin'},
   {id:'config',       label:'Config',          module:'admin'},
 ];
-const CONTADOR_TABS = [
+const GGENERAL_TABS = [
   {id:'contabilidad',       label:'Ventas',     module:'fin'},
   {id:'analisis',           label:'Análisis',   module:'fin'},
   {id:'historico',          label:'Histórico',  module:'fin'},
   {id:'mix',                label:'Mix Ventas', module:'fin'},
   {id:'evaluacion',         label:'Metas',      module:'fin'},
   {id:'propinas-gerencial', label:'Propinas',   module:'fin'},
+  {id:'cajeros',            label:'Cajeros',    module:'fin'},
 ];
 const SAL_TABS = [
   {id:'mi-dia',           label:'Mi día',        module:'ops' },
@@ -1415,8 +1412,12 @@ let _activeTabId  = null;
 
 function getModuleDefs() {
   if(MODE==='owner')    return MODULE_DEFS_OWNER;
-  if(MODE==='contador') return [
+  if(MODE==='ggeneral') return [
     {id:'fin', label:'Finanzas', icon:'◉', cssClass:'mod-fin'},
+  ];
+  if(MODE==='manager') return [
+    {id:'ops',  label:'Operaciones', icon:'◈', cssClass:'mod-ops'},
+    {id:'team', label:'Equipo',      icon:'◎', cssClass:'mod-team'},
   ];
   if(MODE==='salonero') return [
     {id:'ops',  label:'Operaciones', icon:'◈', cssClass:'mod-ops'},
@@ -1429,7 +1430,7 @@ function getModuleDefs() {
 function getTabs() {
   if(MODE==='owner')    return OWNER_TABS;
   if(MODE==='manager')  return MANAGER_TABS;
-  if(MODE==='contador') return CONTADOR_TABS;
+  if(MODE==='ggeneral') return GGENERAL_TABS;
   return SAL_TABS;
 }
 
