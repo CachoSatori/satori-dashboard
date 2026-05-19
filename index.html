@@ -8251,7 +8251,7 @@ async function renderEmpleados(el) {
   </div>`;
 
   try {
-    const r = await apiGet({ action:'getEmpleados' });
+    const r = await apiCall({ action:'getEmpleados' });
     if (r?.ok) {
       _empleados = r.empleados || [];
       renderEmpList();
