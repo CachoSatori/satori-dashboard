@@ -1210,11 +1210,12 @@ const MANAGER_TABS = [
   {id:'semana',       label:'Calendario',      module:'ops' },
   {id:'xls',          label:'Cargar XLS',      module:'ops' },
   // FINANZAS
-  {id:'contabilidad', label:'Ventas',          module:'fin' },
-  {id:'analisis',     label:'Análisis',        module:'fin' },
-  {id:'historico',    label:'Histórico',       module:'fin' },
-  {id:'mix',          label:'Mix Ventas',      module:'fin' },
-  {id:'evaluacion',   label:'Metas',           module:'fin' },
+  {id:'contabilidad',       label:'Ventas',          module:'fin' },
+  {id:'analisis',           label:'Análisis',        module:'fin' },
+  {id:'historico',          label:'Histórico',       module:'fin' },
+  {id:'mix',                label:'Mix Ventas',      module:'fin' },
+  {id:'evaluacion',         label:'Metas',           module:'fin' },
+  {id:'propinas-gerencial', label:'Propinas',        module:'fin' },
   // EQUIPO
   {id:'competencias', label:'Competencias',    module:'team'},
   {id:'evaluacion2',  label:'Gestión equipo',  module:'team'},
@@ -1227,11 +1228,12 @@ const OWNER_TABS = [
   {id:'semana',       label:'Calendario',      module:'ops' },
   {id:'xls',          label:'Cargar XLS',      module:'ops' },
   // FINANZAS
-  {id:'contabilidad', label:'Ventas',          module:'fin' },
-  {id:'analisis',     label:'Análisis',        module:'fin' },
-  {id:'historico',    label:'Histórico',       module:'fin' },
-  {id:'mix',          label:'Mix Ventas',      module:'fin' },
-  {id:'evaluacion',   label:'Metas',           module:'fin' },
+  {id:'contabilidad',       label:'Ventas',          module:'fin' },
+  {id:'analisis',           label:'Análisis',        module:'fin' },
+  {id:'historico',          label:'Histórico',       module:'fin' },
+  {id:'mix',                label:'Mix Ventas',      module:'fin' },
+  {id:'evaluacion',         label:'Metas',           module:'fin' },
+  {id:'propinas-gerencial', label:'Propinas',        module:'fin' },
   // EQUIPO
   {id:'competencias', label:'Competencias',    module:'team'},
   {id:'evaluacion2',  label:'Gestión equipo',  module:'team'},
@@ -1389,7 +1391,8 @@ function renderView(id){
   else if(id==='mi-historial') renderMiHistorial(el);
   else if(id==='mi-semana') renderMiSemana(el);
   else if(id==='mis-competencias') renderMisCompetencias(el);
-  else if(id==='mis-propinas')    renderMisPropinas(el);
+  else if(id==='mis-propinas')        renderMisPropinas(el);
+  else if(id==='propinas-gerencial')  renderPropinasGerencial(el);
   requestAnimationFrame(fitKpiVals);
   // Wrap tables for mobile scroll
   document.querySelectorAll('.rt').forEach(t => {
@@ -4761,6 +4764,362 @@ async function renderMisPropinas(el) {
       <span style="color:var(--gold)">10–13% bueno</span> ·
       <span style="color:var(--red)">−10% a mejorar</span> ·
       <strong style="color:#555">Balance</strong> positivo = aportás más al pool de lo que retirás.
+    </div>
+  </div>`;
+
+  el.innerHTML = html;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PROPINAS GERENCIAL — Vista resumen manager/owner
+// ─────────────────────────────────────────────────────────────────────────────
+async function renderPropinasGerencial(el) {
+  el.innerHTML = moduleBreadcrumb('fin','Propinas — Resumen Gerencial') +
+    `<div style="padding:40px;text-align:center;color:#555;font-size:11px">Cargando datos...</div>`;
+
+  // ── Fetch turnos ──────────────────────────────────────────────
+  const r = await apiCall({ action:'getTurnosPropinas' });
+  const turnos = (r?.data || []).map(t => ({ ...t, fecha: _normFecha(t.fecha) }));
+
+  // ── ventasMesSal[mes][SAL_UP] = { ventas, pax } ──────────────
+  const ventasMesSal = {};
+  Object.keys(DIAS).forEach(fecha => {
+    const mes = fecha.substring(0,7);
+    const salData = DIAS[fecha]?.saloneros;
+    if(!salData) return;
+    Object.keys(salData).forEach(k => {
+      const key = k.toUpperCase().trim();
+      const s   = salData[k];
+      if(!ventasMesSal[mes])      ventasMesSal[mes]      = {};
+      if(!ventasMesSal[mes][key]) ventasMesSal[mes][key] = { ventas:0, pax:0 };
+      ventasMesSal[mes][key].ventas += s.total || 0;
+      ventasMesSal[mes][key].pax   += s.pax   || 0;
+    });
+  });
+
+  // ── propMesSal[mes][SAL_UP] = { gen, take, dias, q1, q2 } ────
+  const propMesSal = {};
+  let turnoCount = 0;
+  turnos.forEach(t => {
+    const mes = t.fecha.substring(0,7);
+    if(!mes || mes.length < 7) return;
+    const day = parseInt(t.fecha.split('-')[2]||'0');
+    turnoCount++;
+    (t.datos?.lineas || []).forEach(l => {
+      const key = (l.nombre||'').toUpperCase().trim();
+      if(!key) return;
+      if(!propMesSal[mes])      propMesSal[mes]      = {};
+      if(!propMesSal[mes][key]) propMesSal[mes][key] = {
+        gen:0, take:0, dias:0,
+        q1:{ dias:0, gen:0, take:0 }, q2:{ dias:0, gen:0, take:0 }
+      };
+      const p = propMesSal[mes][key];
+      const q = day <= 15 ? 'q1' : 'q2';
+      p.gen  += l.propina_gen || 0;
+      p.take += l.take_home  || 0;
+      p.dias++;
+      p[q].dias++;
+      p[q].gen  += l.propina_gen || 0;
+      p[q].take += l.take_home  || 0;
+    });
+  });
+
+  // ── Meses con cualquier dato ──────────────────────────────────
+  const mesesSet = new Set([
+    ...Object.keys(propMesSal),
+    ...Object.keys(ventasMesSal)
+  ]);
+  const meses = [...mesesSet].sort().reverse();
+
+  if(!meses.length && !turnoCount) {
+    el.innerHTML = moduleBreadcrumb('fin','Propinas — Resumen Gerencial') +
+      emptyState('₡','Sin datos','Cargá reportes XLS y registrá turnos de propinas para ver el resumen gerencial');
+    return;
+  }
+
+  const now    = new Date();
+  const curKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+
+  // ── Helpers ───────────────────────────────────────────────────
+  const icpColor = icp => icp === null ? '#555' : icp >= 13 ? 'var(--green)' : icp >= 10 ? 'var(--gold)' : 'var(--red)';
+  const icpSpan  = (icp, bold) => {
+    if(icp === null) return '<span class="prop-muted">—</span>';
+    const c = icpColor(icp);
+    return `<span style="color:${c}${bold?';font-weight:700':''}">${icp.toFixed(1)}%</span>`;
+  };
+
+  // ── Agregar por mes (totales restaurante) ────────────────────
+  // resMes[mes] = { ventas, gen, take, saloneros_set, turnos, q1gen, q2gen, q1take, q2take }
+  const resMes = {};
+  meses.forEach(m => {
+    let ventas=0, gen=0, take=0, q1gen=0, q1take=0, q2gen=0, q2take=0;
+    const salSet = new Set();
+    // ventas de todos los saloneros ese mes
+    Object.keys(ventasMesSal[m] || {}).forEach(k => { ventas += ventasMesSal[m][k].ventas; });
+    // propinas de todos los empleados ese mes
+    Object.keys(propMesSal[m] || {}).forEach(k => {
+      const p = propMesSal[m][k];
+      gen    += p.gen;  take   += p.take;
+      q1gen  += p.q1.gen;  q1take += p.q1.take;
+      q2gen  += p.q2.gen;  q2take += p.q2.take;
+      salSet.add(k);
+    });
+    resMes[m] = { ventas, gen, take, sals: salSet.size, q1gen, q1take, q2gen, q2take };
+  });
+
+  // ── Turnos por mes ────────────────────────────────────────────
+  const turnosPorMes = {};
+  turnos.forEach(t => {
+    const m = t.fecha.substring(0,7);
+    turnosPorMes[m] = (turnosPorMes[m] || 0) + 1;
+  });
+
+  // ── Ranking saloneros MES ACTUAL ─────────────────────────────
+  const curProp   = propMesSal[curKey]   || {};
+  const curVentas = ventasMesSal[curKey] || {};
+  const allSalsCur = new Set([...Object.keys(curProp), ...Object.keys(curVentas)]);
+
+  const ranking = [...allSalsCur].map(k => {
+    const p = curProp[k]   || { gen:0, take:0, dias:0, q1:{dias:0,gen:0,take:0}, q2:{dias:0,gen:0,take:0} };
+    const v = curVentas[k] || { ventas:0, pax:0 };
+    const icp = v.ventas > 0 && p.gen > 0 ? p.gen / v.ventas * 100 : null;
+    return { k, gen:p.gen, take:p.take, dias:p.dias, ventas:v.ventas,
+             balance: p.gen - p.take, icp,
+             q1:p.q1, q2:p.q2 };
+  }).sort((a,b) => (b.icp??-1) - (a.icp??-1));
+
+  // ICP promedio equipo (mes actual)
+  const icpVals = ranking.filter(s => s.icp !== null).map(s => s.icp);
+  const icpEquipoCur = icpVals.length ? icpVals.reduce((s,v)=>s+v,0)/icpVals.length : null;
+
+  // Alertas: saloneros ICP < 10
+  const alertas = ranking.filter(s => s.icp !== null && s.icp < 10);
+
+  // ── KPIs globales mes actual ─────────────────────────────────
+  const curRes  = resMes[curKey] || { ventas:0, gen:0, take:0, sals:0, q1gen:0, q1take:0, q2gen:0, q2take:0 };
+  const curIcpR = curRes.ventas > 0 && curRes.gen > 0 ? curRes.gen / curRes.ventas * 100 : null;
+  const curTurnos = turnosPorMes[curKey] || 0;
+
+  let html = moduleBreadcrumb('fin','Propinas — Resumen Gerencial');
+
+  // ── Mes selector label ────────────────────────────────────────
+  const [cy,cm] = curKey.split('-');
+  html += `<div style="font-size:9px;letter-spacing:.2em;color:#555;margin-bottom:16px;text-transform:uppercase">
+    ${_MESES_P[parseInt(cm)-1]} ${cy} · Período actual
+  </div>`;
+
+  // ── KPI cards ─────────────────────────────────────────────────
+  const icpRColor = icpColor(curIcpR);
+  html += `<div class="kpi-grid" style="margin-bottom:32px">
+    <div class="kpi">
+      <div class="kpi-label">ICP Restaurante</div>
+      <div class="kpi-val" style="color:${icpRColor}">${curIcpR !== null ? curIcpR.toFixed(1)+'%' : '—'}</div>
+      <div class="kpi-sub">Prop. generada / Ventas totales</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Pool generado</div>
+      <div class="kpi-val">${fi(curRes.gen)}</div>
+      <div class="kpi-sub">Total propinas en datáfono este mes</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Total distribuido</div>
+      <div class="kpi-val" style="color:var(--gold)">${fi(curRes.take)}</div>
+      <div class="kpi-sub">Take home total del equipo</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Turnos registrados</div>
+      <div class="kpi-val">${curTurnos}</div>
+      <div class="kpi-sub">${allSalsCur.size} empleado${allSalsCur.size!==1?'s':''} con propinas</div>
+    </div>
+  </div>`;
+
+  // ── Alertas ───────────────────────────────────────────────────
+  if(alertas.length) {
+    html += `<div style="background:#1a0808;border:1px solid #4a1a1a;border-radius:3px;padding:14px 18px;margin-bottom:24px">
+      <div style="font-size:9px;letter-spacing:.2em;color:var(--red);margin-bottom:10px;text-transform:uppercase">⚠ ICP bajo — requiere atención</div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px">
+        ${alertas.map(s => `<span style="background:#2a0808;border:1px solid var(--red);border-radius:2px;padding:5px 12px;font-size:10px;color:#e08080">
+          ${s.k} · <strong style="color:var(--red)">${s.icp.toFixed(1)}%</strong>
+        </span>`).join('')}
+      </div>
+    </div>`;
+  }
+
+  // ── Ranking saloneros mes actual ──────────────────────────────
+  if(ranking.length) {
+    const maxGen = Math.max(...ranking.map(s => s.gen), 1);
+    html += `<div class="prop-section" style="margin-bottom:28px">
+      <div class="prop-section-title">Ranking ICP — ${_MESES_P[parseInt(cm)-1]} ${cy}</div>
+      <table class="prop-table" style="margin-top:12px">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Salonero</th>
+            <th class="r">Días</th>
+            <th class="r">Ventas</th>
+            <th class="r">Prop. gen.</th>
+            <th class="r">ICP</th>
+            <th class="r">Take home</th>
+            <th class="r">Balance</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${ranking.map((s,i) => {
+            const bc   = s.balance >= 0 ? 'var(--green)' : 'var(--red)';
+            const alert = s.icp !== null && s.icp < 10;
+            const bar  = Math.round(s.gen / maxGen * 100);
+            return `<tr style="${alert ? 'background:rgba(194,59,34,.04)' : i===0 ? 'background:rgba(200,169,110,.04)' : ''}">
+              <td style="color:${i===0?'var(--gold)':i===1?'#999':i===2?'#cd7f32':'#444'};font-family:Syne,sans-serif;font-weight:800">${i+1}</td>
+              <td style="${alert?'color:var(--red)':''}">${s.k}</td>
+              <td class="r prop-muted">${s.dias}</td>
+              <td class="r prop-muted">${s.ventas>0?fi(s.ventas):'—'}</td>
+              <td class="r">
+                <span class="prop-bar-wrap"><span class="prop-bar-fill" style="width:${bar}%"></span></span>
+                ${s.gen>0?fi(s.gen):'—'}
+              </td>
+              <td class="r">${icpSpan(s.icp, true)}</td>
+              <td class="r prop-gold">${fi(s.take)}</td>
+              <td class="r" style="color:${bc};font-weight:700">${s.balance>=0?'+':''}${fi(s.balance)}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colspan="2">TOTAL</td>
+            <td class="r prop-muted">—</td>
+            <td class="r prop-muted">${curRes.ventas>0?fi(curRes.ventas):'—'}</td>
+            <td class="r">${fi(curRes.gen)}</td>
+            <td class="r">${icpSpan(curIcpR, true)}</td>
+            <td class="r prop-gold" style="font-size:14px">${fi(curRes.take)}</td>
+            <td class="r" style="font-weight:700;color:${curRes.gen-curRes.take>=0?'var(--green)':'var(--red)'}">
+              ${curRes.gen-curRes.take>=0?'+':''}${fi(curRes.gen-curRes.take)}
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+      ${icpEquipoCur!==null ? `<div style="padding:8px 16px;font-size:9px;color:#555;border-top:1px solid #1a1a1a">
+        ICP promedio equipo este mes: <strong style="color:${icpColor(icpEquipoCur)}">${icpEquipoCur.toFixed(1)}%</strong>
+      </div>` : ''}
+    </div>`;
+
+    // ── Q1 vs Q2 — mes actual ─────────────────────────────────
+    const hasQ = ranking.some(s => s.q1.dias > 0 || s.q2.dias > 0);
+    if(hasQ) {
+      html += `<div class="prop-section" style="margin-bottom:28px">
+        <div class="prop-section-title">Q1 vs Q2 — ${_MESES_P[parseInt(cm)-1]} ${cy}</div>
+        <table class="prop-table" style="margin-top:12px">
+          <thead>
+            <tr>
+              <th>Salonero</th>
+              <th class="c">Q1 · días</th>
+              <th class="r">Q1 generado</th>
+              <th class="r">Q1 take</th>
+              <th class="c">Q2 · días</th>
+              <th class="r">Q2 generado</th>
+              <th class="r">Q2 take</th>
+              <th class="r">Mejor quincena</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${ranking.filter(s=>s.q1.dias>0||s.q2.dias>0).map(s => {
+              const mejor = s.q1.gen >= s.q2.gen ? 'Q1' : 'Q2';
+              const q1c   = s.q1.gen >= s.q2.gen ? 'var(--green)' : '#444';
+              const q2c   = s.q2.gen > s.q1.gen  ? 'var(--green)' : '#444';
+              return `<tr>
+                <td>${s.k}</td>
+                <td class="c prop-muted">${s.q1.dias||'—'}</td>
+                <td class="r" style="color:${q1c}">${s.q1.gen>0?fi(s.q1.gen):'—'}</td>
+                <td class="r prop-muted">${s.q1.take>0?fi(s.q1.take):'—'}</td>
+                <td class="c prop-muted">${s.q2.dias||'—'}</td>
+                <td class="r" style="color:${q2c}">${s.q2.gen>0?fi(s.q2.gen):'—'}</td>
+                <td class="r prop-muted">${s.q2.take>0?fi(s.q2.take):'—'}</td>
+                <td class="r" style="font-weight:700;color:var(--gold)">${mejor}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+          <tfoot>
+            <tr>
+              <td>TOTAL</td>
+              <td class="c prop-muted">—</td>
+              <td class="r">${fi(curRes.q1gen)}</td>
+              <td class="r prop-muted">${fi(curRes.q1take)}</td>
+              <td class="c prop-muted">—</td>
+              <td class="r">${fi(curRes.q2gen)}</td>
+              <td class="r prop-muted">${fi(curRes.q2take)}</td>
+              <td class="r" style="font-weight:700;color:var(--gold)">${curRes.q1gen>=curRes.q2gen?'Q1':'Q2'}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>`;
+    }
+  }
+
+  // ── Tendencia mensual histórica ───────────────────────────────
+  const maxGenHist = Math.max(...meses.map(m => resMes[m]?.gen || 0), 1);
+  html += `<div class="prop-section">
+    <div class="prop-section-title">Tendencia mensual — histórico restaurante</div>
+    <table class="prop-table" style="margin-top:12px">
+      <thead>
+        <tr>
+          <th>Mes</th>
+          <th class="r">Ventas totales</th>
+          <th class="r">Pool generado</th>
+          <th class="r">ICP restaurante</th>
+          <th class="c">Q1 gen · take</th>
+          <th class="c">Q2 gen · take</th>
+          <th class="r">Distribuido</th>
+          <th class="r">Turnos</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${meses.map(m => {
+          const res = resMes[m] || { ventas:0, gen:0, take:0, q1gen:0, q1take:0, q2gen:0, q2take:0, sals:0 };
+          const icp = res.ventas > 0 && res.gen > 0 ? res.gen/res.ventas*100 : null;
+          const [y,mo] = m.split('-');
+          const esCur  = m === curKey;
+          const bar    = Math.round(res.gen / maxGenHist * 100);
+          return `<tr style="${esCur?'background:rgba(200,169,110,.04)':''}">
+            <td>
+              <span class="prop-mes-label">${_MESES_P[parseInt(mo)-1]}</span>
+              <span class="prop-mes-anio">${y}</span>
+              ${esCur?'<span class="prop-cur-badge">HOY</span>':''}
+            </td>
+            <td class="r prop-muted">${res.ventas>0?fi(res.ventas):'—'}</td>
+            <td class="r">
+              <span class="prop-bar-wrap"><span class="prop-bar-fill" style="width:${bar}%"></span></span>
+              ${res.gen>0?fi(res.gen):'—'}
+            </td>
+            <td class="r">${icpSpan(icp, true)}</td>
+            <td class="c prop-muted" style="font-size:11px">${res.q1gen>0?`${fi(res.q1gen)} · ${fi(res.q1take)}`:'—'}</td>
+            <td class="c prop-muted" style="font-size:11px">${res.q2gen>0?`${fi(res.q2gen)} · ${fi(res.q2take)}`:'—'}</td>
+            <td class="r prop-gold">${res.take>0?fi(res.take):'—'}</td>
+            <td class="r prop-muted">${turnosPorMes[m]||0}</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td>TOTAL</td>
+          <td class="r prop-muted">${fi(meses.reduce((s,m)=>s+(resMes[m]?.ventas||0),0))}</td>
+          <td class="r">${fi(meses.reduce((s,m)=>s+(resMes[m]?.gen||0),0))}</td>
+          <td class="r">${(() => {
+            const tv = meses.reduce((s,m)=>s+(resMes[m]?.ventas||0),0);
+            const tg = meses.reduce((s,m)=>s+(resMes[m]?.gen||0),0);
+            return tv>0&&tg>0 ? icpSpan(tg/tv*100,true) : '—';
+          })()}</td>
+          <td class="c prop-muted" style="font-size:11px">${fi(meses.reduce((s,m)=>s+(resMes[m]?.q1gen||0),0))} · ${fi(meses.reduce((s,m)=>s+(resMes[m]?.q1take||0),0))}</td>
+          <td class="c prop-muted" style="font-size:11px">${fi(meses.reduce((s,m)=>s+(resMes[m]?.q2gen||0),0))} · ${fi(meses.reduce((s,m)=>s+(resMes[m]?.q2take||0),0))}</td>
+          <td class="r prop-gold" style="font-size:14px">${fi(meses.reduce((s,m)=>s+(resMes[m]?.take||0),0))}</td>
+          <td class="r prop-muted">${Object.values(turnosPorMes).reduce((s,v)=>s+v,0)}</td>
+        </tr>
+      </tfoot>
+    </table>
+    <div style="padding:12px 16px;font-size:9px;color:#444;border-top:1px solid #1a1a1a;line-height:1.8">
+      <strong style="color:#555">ICP</strong> Índice de Conversión de Propina = Propina generada / Ventas totales.
+      <span style="color:var(--green)">≥13% excelente</span> ·
+      <span style="color:var(--gold)">10–13% bueno</span> ·
+      <span style="color:var(--red)">‹10% a mejorar</span> ·
+      <strong style="color:#555">Q1</strong> días 1–15 · <strong style="color:#555">Q2</strong> días 16–fin de mes.
     </div>
   </div>`;
 
