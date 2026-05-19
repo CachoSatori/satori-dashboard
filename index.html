@@ -57,6 +57,46 @@ body{background:var(--paper);color:var(--ink);font-family:'DM Mono',monospace;mi
   padding:14px 0;text-transform:uppercase;
 }
 
+/* ── LOGIN SEARCH ── */
+.login-search-wrap{position:relative;margin-bottom:4px;}
+.login-search-input{
+  width:100%;padding:13px 16px;background:#1a1a1a;border:1px solid #333;
+  border-radius:2px;font-family:'DM Mono',monospace;font-size:13px;
+  color:#f0ece4;outline:none;letter-spacing:.03em;transition:border .15s;
+}
+.login-search-input::placeholder{color:#444;}
+.login-search-input:focus{border-color:var(--gold);}
+.login-dropdown{
+  position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:300;
+  background:#111;border:1px solid #2a2a2a;border-radius:2px;
+  max-height:360px;overflow-y:auto;box-shadow:0 8px 32px #0008;
+  scrollbar-width:thin;scrollbar-color:#333 #111;
+}
+.login-dropdown-section{
+  font-size:7px;letter-spacing:.3em;text-transform:uppercase;
+  color:#333;padding:10px 14px 5px;font-weight:700;
+}
+.login-dropdown-item{
+  display:flex;align-items:center;gap:12px;
+  padding:11px 14px;cursor:pointer;transition:background .1s;
+  border-bottom:1px solid #1a1a1a;
+}
+.login-dropdown-item:last-child{border-bottom:none;}
+.login-dropdown-item:hover{background:#1e1e1e;}
+.login-dropdown-item.privileged:hover{background:#1a1208;}
+.login-item-avatar{
+  width:30px;height:30px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;
+  font-family:'Syne',sans-serif;
+}
+.login-item-avatar.emp{background:#1a1a1a;color:#666;border:1px solid #2a2a2a;}
+.login-item-avatar.mgr{background:#1a1208;color:var(--gold);border:1px solid #c8a96e40;}
+.login-item-avatar.own{background:#0a0a18;color:#8888cc;border:1px solid #3a3a6e;}
+.login-item-avatar.cnt{background:#0a1a18;color:#5a9a8a;border:1px solid #2a5a4a;}
+.login-item-name{font-size:11px;font-weight:600;color:#f0ece4;letter-spacing:.03em;}
+.login-item-sub{font-size:8px;color:#444;letter-spacing:.05em;text-transform:uppercase;margin-top:1px;}
+.login-item-lock{margin-left:auto;font-size:11px;color:#333;}
+
 /* ── APP SHELL ── */
 header{
   display:flex;align-items:center;justify-content:space-between;
@@ -70,6 +110,8 @@ header{
   text-transform:uppercase;color:#555;padding:3px 9px;border:1px solid #2a2a2a;border-radius:1px;
 }
 .logo-mode.sal{color:var(--gold);border-color:var(--gold-dim);}
+.logo-mode.own{color:#8888cc;border-color:#3a3a6e;}
+.logo-mode.cnt{color:#5a9a8a;border-color:#2a5a4a40;}
 .header-right{display:flex;align-items:center;gap:14px;}
 .header-user{font-size:10px;color:var(--gold);}
 .btn-exit{
@@ -526,14 +568,17 @@ header{
 <div class="screen active" id="screen-login">
   <div>
     <div class="login-logo">里 SATORI</div>
-    <div class="login-sub">Dashboard · Saloneros</div>
+    <div class="login-sub">Sistema de gestión</div>
     <div class="login-box" id="login-main">
-      <div class="login-label">Acceso</div>
-      <button class="login-btn manager" onclick="showPinModal('manager')">⚙ Manager</button>
-      <button class="login-btn owner" onclick="showPinModal('owner')" style="margin-top:6px;font-size:9px;padding:8px">🔑 Owner</button>
-      <div class="login-divider">· · · saloneros · · ·</div>
-      <div class="login-label">Selecciona tu nombre</div>
-      <div class="login-grid" id="login-grid"></div>
+      <div class="login-label" style="margin-bottom:12px">¿Quién sos?</div>
+      <div class="login-search-wrap">
+        <input type="text" class="login-search-input" id="login-search"
+          placeholder="Escribí tu nombre..." autocomplete="off" spellcheck="false"
+          oninput="filterLogin(this.value)"
+          onfocus="filterLogin(this.value)"
+          onkeydown="loginKeyNav(event)">
+        <div class="login-dropdown" id="login-dropdown" style="display:none"></div>
+      </div>
     </div>
     <!-- PIN Modal -->
     <div id="pin-modal" style="display:none;position:fixed;inset:0;background:#000a;z-index:999;
@@ -1031,23 +1076,133 @@ function updateStorageBadge(){
 // ═══════════════════════════════════════════════════════════════
 // LOGIN
 // ═══════════════════════════════════════════════════════════════
-function buildLogin(){
-  const grid = document.getElementById('login-grid');
-  grid.innerHTML = '';
-  ALL_SALS.forEach(name => {
-    const btn = document.createElement('button');
-    btn.className = 'login-btn';
-    btn.textContent = name;
-    btn.onclick = () => enterSalonero(name);
-    grid.appendChild(btn);
-  });
+async function buildLogin(){
+  // Cargar empleados activos desde Sheets para el dropdown
+  try {
+    const r = await apiCall({ action:'getEmpleados' });
+    if(r?.data?.length) {
+      EMPLEADOS_LOGIN = (r.data)
+        .filter(e => e.activo !== false && e.activo !== 'false')
+        .map(e => ({ nombre: e.nombre, rol: e.rol || 'sin_asignar' }))
+        .sort((a,b) => a.nombre.localeCompare(b.nombre));
+    }
+  } catch(_) {}
+  // Fallback: usar ALL_SALS si no hay empleados cargados
+  if(!EMPLEADOS_LOGIN.length && ALL_SALS.length) {
+    EMPLEADOS_LOGIN = ALL_SALS.map(n => ({ nombre:n, rol:'salonero' }));
+  }
+  filterLogin('');
+  // Auto-focus
+  setTimeout(() => document.getElementById('login-search')?.focus(), 100);
 }
 
+const PRIVILEGED_ROLES = [
+  { key:'owner',    label:'Dueño',    sub:'Acceso completo',   avatar:'D', cls:'own', pin:true },
+  { key:'manager',  label:'Manager',  sub:'Gestión operativa', avatar:'M', cls:'mgr', pin:true },
+  { key:'contador', label:'Contador', sub:'Reportes financieros', avatar:'C', cls:'cnt', pin:true },
+];
+
+function filterLogin(val) {
+  const dd   = document.getElementById('login-dropdown');
+  const q    = val.trim().toLowerCase();
+  _loginFocusIdx = -1;
+
+  // Filtrar roles privilegiados
+  const privMatch = PRIVILEGED_ROLES.filter(r =>
+    !q || r.label.toLowerCase().includes(q) || r.key.includes(q)
+  );
+  // Filtrar empleados
+  const empMatch = EMPLEADOS_LOGIN.filter(e =>
+    !q || e.nombre.toLowerCase().includes(q)
+  );
+
+  if(!privMatch.length && !empMatch.length) {
+    dd.innerHTML = `<div style="padding:14px;font-size:10px;color:#444;text-align:center">Sin resultados</div>`;
+    dd.style.display = 'block';
+    return;
+  }
+
+  let html = '';
+  if(privMatch.length) {
+    html += `<div class="login-dropdown-section">Acceso gerencial</div>`;
+    privMatch.forEach((r,i) => {
+      html += `<div class="login-dropdown-item privileged" data-idx="${i}"
+        onclick="selectLoginPriv('${r.key}')">
+        <div class="login-item-avatar ${r.cls}">${r.avatar}</div>
+        <div>
+          <div class="login-item-name">${r.label}</div>
+          <div class="login-item-sub">${r.sub}</div>
+        </div>
+        <div class="login-item-lock">🔑</div>
+      </div>`;
+    });
+  }
+  if(empMatch.length) {
+    html += `<div class="login-dropdown-section">Equipo · ${empMatch.length} activos</div>`;
+    empMatch.forEach(e => {
+      const initials = e.nombre.split(' ').map(w=>w[0]).slice(0,2).join('');
+      html += `<div class="login-dropdown-item" onclick="selectLoginEmp('${e.nombre.replace(/'/g,"\\'")}')">
+        <div class="login-item-avatar emp">${initials}</div>
+        <div>
+          <div class="login-item-name">${e.nombre}</div>
+          <div class="login-item-sub">${e.rol}</div>
+        </div>
+      </div>`;
+    });
+  }
+
+  dd.innerHTML = html;
+  dd.style.display = 'block';
+}
+
+function loginKeyNav(e) {
+  const items = document.querySelectorAll('.login-dropdown-item');
+  if(!items.length) return;
+  if(e.key === 'ArrowDown') {
+    e.preventDefault();
+    _loginFocusIdx = Math.min(_loginFocusIdx + 1, items.length - 1);
+    items[_loginFocusIdx]?.scrollIntoView({ block:'nearest' });
+    items.forEach((el,i) => el.style.background = i===_loginFocusIdx ? '#1e1e1e' : '');
+  } else if(e.key === 'ArrowUp') {
+    e.preventDefault();
+    _loginFocusIdx = Math.max(_loginFocusIdx - 1, 0);
+    items[_loginFocusIdx]?.scrollIntoView({ block:'nearest' });
+    items.forEach((el,i) => el.style.background = i===_loginFocusIdx ? '#1e1e1e' : '');
+  } else if(e.key === 'Enter' && _loginFocusIdx >= 0) {
+    items[_loginFocusIdx]?.click();
+  } else if(e.key === 'Escape') {
+    document.getElementById('login-dropdown').style.display = 'none';
+  }
+}
+
+function selectLoginPriv(key) {
+  document.getElementById('login-dropdown').style.display = 'none';
+  showPinModal(key);
+}
+
+function selectLoginEmp(nombre) {
+  document.getElementById('login-dropdown').style.display = 'none';
+  enterEmployee(nombre);
+}
+
+// Cerrar dropdown al hacer click afuera
+document.addEventListener('click', e => {
+  if(!e.target.closest('.login-search-wrap')) {
+    const dd = document.getElementById('login-dropdown');
+    if(dd) dd.style.display = 'none';
+  }
+});
+
 // ── PIN System ──
-const OWNER_PIN   = '3194'; // Tu PIN privado de owner — cambiá en el código
-const MANAGER_PIN = '1959'; // PIN del manager — cambiá en el código
+const OWNER_PIN    = '3194'; // PIN Owner
+const MANAGER_PIN  = '1959'; // PIN Manager
+const CONTADOR_PIN = '1234'; // PIN Contador
 let _pinTarget = null;
 let _pinBuffer = '';
+
+// ── Empleados para login (cargados desde Sheets) ──
+let EMPLEADOS_LOGIN = []; // [{nombre, rol}]
+let _loginFocusIdx = -1;
 
 function getPinManager(){
   return MANAGER_PIN; // hardcoded — cambiar en el código fuente
@@ -1060,8 +1215,9 @@ function setPinManager(pin){
 function showPinModal(target){
   _pinTarget = target;
   _pinBuffer = '';
-  const title = target==='owner' ? '🔑 PIN Owner' : '⚙ PIN Manager';
-  document.getElementById('pin-modal-title').textContent = title;
+  const titles = { owner:'🔑 PIN Dueño', manager:'⚙ PIN Manager', contador:'📊 PIN Contador' };
+  document.getElementById('pin-modal-title').textContent = titles[target] || 'PIN';
+  document.getElementById('pin-error').textContent = '';
   document.getElementById('pin-error').textContent = '';
   updatePinDisplay();
   // Build pin pad buttons dynamically
@@ -1112,29 +1268,19 @@ function updatePinDisplay(){
 }
 
 function checkPin(){
-  const managerPin = getPinManager();
-  let ok = false;
-  let role = null;
+  let ok = false, role = null, user = null;
 
   if(_pinTarget === 'owner' && _pinBuffer === OWNER_PIN){
-    ok = true; role = 'owner';
-  } else if(_pinTarget === 'manager' && managerPin && _pinBuffer === managerPin){
-    ok = true; role = 'manager';
-  } else if(_pinTarget === 'manager' && !managerPin){
-    // No manager PIN set yet — show message
-    document.getElementById('pin-error').textContent = 'PIN no configurado. Entrá como Owner para configurarlo.';
-    for(let i=0;i<4;i++) document.getElementById('pd'+i).className='pin-dot error';
-    setTimeout(()=>{ _pinBuffer=''; updatePinDisplay(); document.getElementById('pin-error').textContent=''; }, 1800);
-    return;
+    ok = true; role = 'owner'; user = 'Dueño';
+  } else if(_pinTarget === 'manager' && _pinBuffer === MANAGER_PIN){
+    ok = true; role = 'manager'; user = 'Manager';
+  } else if(_pinTarget === 'contador' && _pinBuffer === CONTADOR_PIN){
+    ok = true; role = 'contador'; user = 'Contador';
   }
 
   if(ok){
     closePinModal();
-    if(role==='owner'){
-      MODE='owner'; CURRENT_USER='Owner';
-    } else {
-      MODE='manager'; CURRENT_USER='Manager';
-    }
+    MODE = role; CURRENT_USER = user;
     showApp();
   } else {
     document.getElementById('pin-error').textContent = 'PIN incorrecto';
@@ -1152,18 +1298,22 @@ document.addEventListener('keydown', function(e){
   }
 });
 
-function enterManager(){
-  // Legacy — now handled by PIN
-  showPinModal('manager');
-}
-function enterSalonero(name){
-  MODE = 'salonero'; CURRENT_USER = name;
+function enterManager(){ showPinModal('manager'); }
+function enterSalonero(name){ enterEmployee(name); }
+function enterEmployee(name){
+  // Detectar el rol del empleado para personalizar la vista en el futuro
+  const emp = EMPLEADOS_LOGIN.find(e => e.nombre === name);
+  MODE = 'salonero'; // todos los empleados usan la vista salonero por ahora
+  CURRENT_USER = name;
   showApp();
 }
 function exitToLogin(){
   document.getElementById('screen-app').classList.remove('active');
   document.getElementById('screen-login').classList.add('active');
   MODE = null; CURRENT_USER = null;
+  _activeModule = null; _activeTabId = null;
+  const inp = document.getElementById('login-search');
+  if(inp) { inp.value = ''; filterLogin(''); setTimeout(()=>inp.focus(),100); }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1176,8 +1326,10 @@ function showApp(){
   document.getElementById('screen-app').classList.add('active');
   document.getElementById('header-user').textContent = CURRENT_USER;
   const badge = document.getElementById('mode-badge');
-  badge.textContent = MODE === 'owner' ? 'OWNER' : MODE === 'manager' ? 'MANAGER' : 'SALONERO';
-  badge.className = 'logo-mode' + (MODE==='salonero'?' sal': MODE==='owner'?' own':'');
+  const badgeLabels = { owner:'OWNER', manager:'MANAGER', contador:'CONTADOR', salonero:'SALONERO' };
+  const badgeCls    = { owner:' own', manager:'', contador:' cnt', salonero:' sal' };
+  badge.textContent = badgeLabels[MODE] || MODE.toUpperCase();
+  badge.className   = 'logo-mode' + (badgeCls[MODE] || '');
   buildNav();
   buildViews();
   activateTab(0);
@@ -1241,6 +1393,14 @@ const OWNER_TABS = [
   {id:'empleados',    label:'Empleados',       module:'admin'},
   {id:'config',       label:'Config',          module:'admin'},
 ];
+const CONTADOR_TABS = [
+  {id:'contabilidad',       label:'Ventas',     module:'fin'},
+  {id:'analisis',           label:'Análisis',   module:'fin'},
+  {id:'historico',          label:'Histórico',  module:'fin'},
+  {id:'mix',                label:'Mix Ventas', module:'fin'},
+  {id:'evaluacion',         label:'Metas',      module:'fin'},
+  {id:'propinas-gerencial', label:'Propinas',   module:'fin'},
+];
 const SAL_TABS = [
   {id:'mi-dia',           label:'Mi día',        module:'ops' },
   {id:'mi-semana',        label:'Mi semana',     module:'ops' },
@@ -1254,7 +1414,10 @@ let _activeModule = null;
 let _activeTabId  = null;
 
 function getModuleDefs() {
-  if(MODE==='owner') return MODULE_DEFS_OWNER;
+  if(MODE==='owner')    return MODULE_DEFS_OWNER;
+  if(MODE==='contador') return [
+    {id:'fin', label:'Finanzas', icon:'◉', cssClass:'mod-fin'},
+  ];
   if(MODE==='salonero') return [
     {id:'ops',  label:'Operaciones', icon:'◈', cssClass:'mod-ops'},
     {id:'fin',  label:'Finanzas',    icon:'◉', cssClass:'mod-fin'},
@@ -1264,7 +1427,10 @@ function getModuleDefs() {
 }
 
 function getTabs() {
-  return MODE==='owner' ? OWNER_TABS : MODE==='manager' ? MANAGER_TABS : SAL_TABS;
+  if(MODE==='owner')    return OWNER_TABS;
+  if(MODE==='manager')  return MANAGER_TABS;
+  if(MODE==='contador') return CONTADOR_TABS;
+  return SAL_TABS;
 }
 
 function buildNav() {
@@ -1329,7 +1495,7 @@ function activateModule(modId) {
 function buildViews(){
   const main = document.getElementById('main-views');
   main.innerHTML = '';
-  const tabs = MODE==='owner' ? OWNER_TABS : MODE==='manager' ? MANAGER_TABS : SAL_TABS;
+  const tabs = getTabs();
   tabs.forEach(t => {
     const div = document.createElement('div');
     div.className = 'view';
