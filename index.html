@@ -4540,130 +4540,228 @@ function _normFecha(f) {
 }
 
 async function renderMisPropinas(el) {
-  const name = CURRENT_USER;
-  el.innerHTML = moduleBreadcrumb('fin','Mis Propinas') +
-    `<div style="padding:40px;text-align:center;color:#555;font-size:11px">Cargando propinas...</div>`;
+  const name    = CURRENT_USER;
+  const nameUP  = (name||'').toUpperCase().trim();
+  el.innerHTML  = moduleBreadcrumb('fin','Mis Propinas') +
+    `<div style="padding:40px;text-align:center;color:#555;font-size:11px">Calculando métricas...</div>`;
 
+  // ── 1. Fetch turnos de propinas ───────────────────────────────
   const r = await apiCall({ action:'getTurnosPropinas' });
   const turnos = (r?.data || []).map(t => ({ ...t, fecha: _normFecha(t.fecha) }));
 
-  // Agregar por mes y quincena
-  const byMes = {}; // "2026-05" → { q1:{dias,total}, q2:{dias,total} }
-  turnos.forEach(t => {
-    const linea = (t.datos?.lineas || []).find(l => l.nombre === name);
-    if(!linea) return;
-    const mes = t.fecha.substring(0,7);
-    const day = parseInt(t.fecha.split('-')[2]||'0');
-    if(!byMes[mes]) byMes[mes] = { q1:{dias:0,total:0}, q2:{dias:0,total:0} };
-    const q = day <= 15 ? 'q1' : 'q2';
-    byMes[mes][q].dias++;
-    byMes[mes][q].total += linea.take_home || 0;
+  // ── 2. Pass único sobre DIAS → ventas y PAX por mes por salonero ──
+  // ventasMesSal["2026-05"]["JUAN"] = { ventas, pax }
+  const ventasMesSal = {};
+  Object.keys(DIAS).forEach(fecha => {
+    const mes     = fecha.substring(0,7);
+    const salData = DIAS[fecha]?.saloneros;
+    if(!salData) return;
+    Object.keys(salData).forEach(k => {
+      const s   = salData[k];
+      const key = k.toUpperCase().trim();
+      if(!ventasMesSal[mes])      ventasMesSal[mes]      = {};
+      if(!ventasMesSal[mes][key]) ventasMesSal[mes][key] = { ventas:0, pax:0 };
+      ventasMesSal[mes][key].ventas += s.total || 0;
+      ventasMesSal[mes][key].pax   += s.pax   || 0;
+    });
   });
 
-  const meses = Object.keys(byMes).sort().reverse();
+  // ── 3. Pass único sobre turnos → propina_gen y take_home por mes por empleado ──
+  // propMesSal["2026-05"]["JUAN"] = { gen, take, dias_turno, q1:{dias,take}, q2:{dias,take} }
+  const propMesSal = {};
+  turnos.forEach(t => {
+    const mes = t.fecha.substring(0,7);
+    const day = parseInt(t.fecha.split('-')[2]||'0');
+    (t.datos?.lineas || []).forEach(l => {
+      const key = (l.nombre||'').toUpperCase().trim();
+      if(!propMesSal[mes])      propMesSal[mes]      = {};
+      if(!propMesSal[mes][key]) propMesSal[mes][key] = {
+        gen:0, take:0, dias:0,
+        q1:{ dias:0, take:0 }, q2:{ dias:0, take:0 }
+      };
+      const p = propMesSal[mes][key];
+      const q = day <= 15 ? 'q1' : 'q2';
+      p.gen  += l.propina_gen || 0;
+      p.take += l.take_home  || 0;
+      p.dias++;
+      p[q].dias++;
+      p[q].take += l.take_home || 0;
+    });
+  });
+
+  // ── 4. Meses con datos del empleado ──────────────────────────
+  const mesesSet = new Set([
+    ...Object.keys(propMesSal).filter(m => propMesSal[m][nameUP]),
+    ...Object.keys(ventasMesSal).filter(m => ventasMesSal[m][nameUP]?.ventas > 0)
+  ]);
+  const meses = [...mesesSet].sort().reverse();
 
   if(!meses.length) {
     el.innerHTML = moduleBreadcrumb('fin','Mis Propinas') +
-      emptyState('₡','Sin propinas registradas','Aún no hay turnos cargados para este empleado');
+      emptyState('₡','Sin datos registrados','Subí reportes de ventas y cargá turnos de propinas para ver tus métricas');
     return;
   }
 
-  // Totales generales
-  const totalAcum = meses.reduce((s,m) => s + byMes[m].q1.total + byMes[m].q2.total, 0);
-  const diasAcum  = meses.reduce((s,m) => s + byMes[m].q1.dias  + byMes[m].q2.dias,  0);
+  // ── 5. Calcular ICP del equipo por mes (benchmark) ───────────
+  // icp_equipo[mes] = promedio ICP de todos los saloneros ese mes
+  const icpEquipo = {};
+  Object.keys(propMesSal).forEach(mes => {
+    const vals = [];
+    Object.keys(propMesSal[mes]).forEach(k => {
+      const gen    = propMesSal[mes][k].gen;
+      const ventas = ventasMesSal[mes]?.[k]?.ventas || 0;
+      if(ventas > 0 && gen > 0) vals.push(gen / ventas * 100);
+    });
+    if(vals.length) icpEquipo[mes] = vals.reduce((s,v)=>s+v,0) / vals.length;
+  });
 
-  // Mes actual
+  // ── 6. Construir objeto por mes para el empleado ─────────────
+  const byMes = {};
+  meses.forEach(m => {
+    const prop   = propMesSal[m]?.[nameUP]  || { gen:0, take:0, dias:0, q1:{dias:0,take:0}, q2:{dias:0,take:0} };
+    const ventas = ventasMesSal[m]?.[nameUP] || { ventas:0, pax:0 };
+    byMes[m] = {
+      ventas:  ventas.ventas,
+      pax:     ventas.pax,
+      gen:     prop.gen,
+      take:    prop.take,
+      dias:    prop.dias,
+      q1:      prop.q1,
+      q2:      prop.q2,
+      icp:     ventas.ventas > 0 && prop.gen > 0 ? prop.gen / ventas.ventas * 100 : null,
+      icpEq:   icpEquipo[m] || null,
+      balance: prop.gen - prop.take,
+      propPax: ventas.pax > 0 && prop.gen > 0 ? prop.gen / ventas.pax : null,
+    };
+  });
+
+  // ── 7. Totales y mes actual ───────────────────────────────────
   const now    = new Date();
   const curKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
   const cur    = byMes[curKey];
-  const curTotal = cur ? cur.q1.total + cur.q2.total : 0;
-  const curDias  = cur ? cur.q1.dias  + cur.q2.dias  : 0;
 
-  // Máximo mensual para barras
-  const maxMes = Math.max(...meses.map(m => byMes[m].q1.total + byMes[m].q2.total));
+  const totalTake  = meses.reduce((s,m) => s + byMes[m].take,   0);
+  const totalGen   = meses.reduce((s,m) => s + byMes[m].gen,    0);
+  const totalDias  = meses.reduce((s,m) => s + byMes[m].dias,   0);
+  const totalVentas= meses.reduce((s,m) => s + byMes[m].ventas, 0);
+  const totalICP   = totalVentas > 0 && totalGen > 0 ? totalGen/totalVentas*100 : null;
+  const maxGen     = Math.max(...meses.map(m => byMes[m].gen), 1);
 
+  // Helper ICP display
+  const icpBadge = (icp, icpEq) => {
+    if(icp === null) return '<span class="prop-muted">—</span>';
+    const txt   = icp.toFixed(1) + '%';
+    const color = icp >= 13 ? 'var(--green)' : icp >= 10 ? 'var(--gold)' : 'var(--red)';
+    if(icpEq === null) return `<span style="color:${color};font-weight:700">${txt}</span>`;
+    const delta = icp - icpEq;
+    const arr   = delta > 0.3 ? '▲' : delta < -0.3 ? '▼' : '●';
+    const ac    = delta > 0.3 ? 'var(--green)' : delta < -0.3 ? 'var(--red)' : '#555';
+    return `<span style="color:${color};font-weight:700">${txt}</span>
+            <span style="color:${ac};font-size:9px;margin-left:3px">${arr} ${Math.abs(delta).toFixed(1)}%</span>`;
+  };
+
+  // ── 8. Render ─────────────────────────────────────────────────
   let html = moduleBreadcrumb('fin','Mis Propinas');
 
-  // KPIs
+  // KPIs mes actual
+  const curICP    = cur?.icp    ?? null;
+  const curIcpEq  = cur?.icpEq  ?? null;
+  const curGen    = cur?.gen    ?? 0;
+  const curTake   = cur?.take   ?? 0;
+  const curBal    = cur?.balance ?? 0;
+  const curDias   = cur?.dias   ?? 0;
+  const icpColor  = curICP === null ? '#f0ece4' : curICP >= 13 ? 'var(--green)' : curICP >= 10 ? 'var(--gold)' : 'var(--red)';
+  const balColor  = curBal >= 0 ? 'var(--green)' : 'var(--red)';
+  const icpVsEq   = curICP !== null && curIcpEq !== null
+    ? `<div class="kpi-sub" style="color:${curICP>=curIcpEq?'var(--green)':'var(--red)'}">
+        ${curICP>=curIcpEq?'▲':'▼'} equipo ${curIcpEq.toFixed(1)}%</div>` : '';
+
   html += `<div class="kpi-grid" style="margin-bottom:28px">
     <div class="kpi">
-      <div class="kpi-label">Este mes</div>
-      <div class="kpi-val">${fi(curTotal)}</div>
-      <div class="kpi-sub">${curDias} día${curDias!==1?'s':''} trabajado${curDias!==1?'s':''}</div>
+      <div class="kpi-label">ICP este mes</div>
+      <div class="kpi-val" style="color:${icpColor}">${curICP !== null ? curICP.toFixed(1)+'%' : '—'}</div>
+      ${icpVsEq}
+      <div class="kpi-sub" style="margin-top:4px;color:#444">Propina gen. / Ventas</div>
     </div>
     <div class="kpi">
-      <div class="kpi-label">Promedio / día</div>
-      <div class="kpi-val">${curDias>0 ? fi(Math.round(curTotal/curDias)) : '—'}</div>
+      <div class="kpi-label">Propina generada</div>
+      <div class="kpi-val">${fi(curGen)}</div>
+      <div class="kpi-sub">Lo que generaste en datáfono</div>
     </div>
     <div class="kpi">
-      <div class="kpi-label">Total acumulado</div>
-      <div class="kpi-val" style="color:var(--gold)">${fi(totalAcum)}</div>
-      <div class="kpi-sub">${diasAcum} días totales</div>
+      <div class="kpi-label">Take home</div>
+      <div class="kpi-val" style="color:var(--gold)">${fi(curTake)}</div>
+      <div class="kpi-sub">${curDias} día${curDias!==1?'s':''} · prom ${curDias>0?fi(Math.round(curTake/curDias)):'—'}/día</div>
     </div>
     <div class="kpi">
-      <div class="kpi-label">Prom histórico / día</div>
-      <div class="kpi-val">${diasAcum>0 ? fi(Math.round(totalAcum/diasAcum)) : '—'}</div>
+      <div class="kpi-label">Balance pool</div>
+      <div class="kpi-val" style="color:${balColor}">${curBal>=0?'+':''}${fi(curBal)}</div>
+      <div class="kpi-sub" style="color:${balColor}">${curBal>=0?'Aportás más de lo que recibís':'Recibís más de lo que aportás'}</div>
     </div>
   </div>`;
 
-  // Tabla mensual con quincenas
+  // Tabla histórica con métricas cruzadas
   html += `<div class="prop-section">
-    <div class="prop-section-title">Historial mensual — por quincena</div>
+    <div class="prop-section-title">Historial mensual — ventas + propinas + ICP</div>
     <table class="prop-table" style="margin-top:12px">
       <thead>
         <tr>
           <th>Mes</th>
-          <th class="c">Q1 días<br><span style="color:#444;font-size:7px">1–15</span></th>
-          <th class="r">Q1 total</th>
-          <th class="r">Q1 prom/día</th>
-          <th class="c">Q2 días<br><span style="color:#444;font-size:7px">16–31</span></th>
-          <th class="r">Q2 total</th>
-          <th class="r">Q2 prom/día</th>
-          <th class="r">Total mes</th>
+          <th class="r">Ventas</th>
+          <th class="r">Prop. gen.</th>
+          <th class="r">ICP <span style="color:#333;font-size:7px">vs equipo</span></th>
+          <th class="c">Q1<br><span style="color:#444;font-size:7px">días · take</span></th>
+          <th class="c">Q2<br><span style="color:#444;font-size:7px">días · take</span></th>
+          <th class="r">Take home</th>
+          <th class="r">Balance</th>
         </tr>
       </thead>
       <tbody>
         ${meses.map(m => {
-          const d = byMes[m];
-          const [y, mo] = m.split('-');
-          const mesTotal = d.q1.total + d.q2.total;
-          const mesDias  = d.q1.dias  + d.q2.dias;
-          const q1avg    = d.q1.dias > 0 ? Math.round(d.q1.total/d.q1.dias) : null;
-          const q2avg    = d.q2.dias > 0 ? Math.round(d.q2.total/d.q2.dias) : null;
-          const barPct   = maxMes > 0 ? Math.round(mesTotal/maxMes*100) : 0;
-          const esCur    = m === curKey;
+          const d      = byMes[m];
+          const [y,mo] = m.split('-');
+          const esCur  = m === curKey;
+          const barPct = Math.round(d.gen / maxGen * 100);
+          const bc     = d.balance >= 0 ? 'var(--green)' : 'var(--red)';
           return `<tr style="${esCur?'background:rgba(200,169,110,.04)':''}">
             <td>
               <span class="prop-mes-label">${_MESES_P[parseInt(mo)-1]}</span>
               <span class="prop-mes-anio">${y}</span>
-              ${esCur ? '<span class="prop-cur-badge">HOY</span>' : ''}
+              ${esCur?'<span class="prop-cur-badge">HOY</span>':''}
             </td>
-            <td class="c prop-muted">${d.q1.dias||'—'}</td>
-            <td class="r">${d.q1.total>0 ? fi(d.q1.total) : '<span class="prop-muted">—</span>'}</td>
-            <td class="r prop-muted">${q1avg ? fi(q1avg) : '—'}</td>
-            <td class="c prop-muted">${d.q2.dias||'—'}</td>
-            <td class="r">${d.q2.total>0 ? fi(d.q2.total) : '<span class="prop-muted">—</span>'}</td>
-            <td class="r prop-muted">${q2avg ? fi(q2avg) : '—'}</td>
+            <td class="r prop-muted">${d.ventas>0 ? fi(d.ventas) : '<span style="color:#333">—</span>'}</td>
             <td class="r">
               <span class="prop-bar-wrap"><span class="prop-bar-fill" style="width:${barPct}%"></span></span>
-              <span class="prop-gold">${fi(mesTotal)}</span>
+              ${d.gen>0 ? fi(d.gen) : '<span class="prop-muted">—</span>'}
             </td>
+            <td class="r">${icpBadge(d.icp, d.icpEq)}</td>
+            <td class="c prop-muted" style="font-size:11px">${d.q1.dias>0?`${d.q1.dias}d · ${fi(d.q1.take)}`:'—'}</td>
+            <td class="c prop-muted" style="font-size:11px">${d.q2.dias>0?`${d.q2.dias}d · ${fi(d.q2.take)}`:'—'}</td>
+            <td class="r prop-gold">${fi(d.take)}</td>
+            <td class="r" style="color:${bc};font-weight:700">${d.balance>=0?'+':''}${fi(d.balance)}</td>
           </tr>`;
         }).join('')}
       </tbody>
       <tfoot>
         <tr>
-          <td><span style="letter-spacing:.1em;font-size:10px">TOTAL</span></td>
-          <td class="c">${meses.reduce((s,m)=>s+byMes[m].q1.dias,0)}</td>
-          <td class="r prop-gold">${fi(meses.reduce((s,m)=>s+byMes[m].q1.total,0))}</td>
-          <td class="r prop-muted">${fi(Math.round(meses.reduce((s,m)=>s+byMes[m].q1.total,0)/Math.max(1,meses.reduce((s,m)=>s+byMes[m].q1.dias,0))))}</td>
-          <td class="c">${meses.reduce((s,m)=>s+byMes[m].q2.dias,0)}</td>
-          <td class="r prop-gold">${fi(meses.reduce((s,m)=>s+byMes[m].q2.total,0))}</td>
-          <td class="r prop-muted">${fi(Math.round(meses.reduce((s,m)=>s+byMes[m].q2.total,0)/Math.max(1,meses.reduce((s,m)=>s+byMes[m].q2.dias,0))))}</td>
-          <td class="r"><span class="prop-gold" style="font-size:14px">${fi(totalAcum)}</span></td>
+          <td>TOTAL</td>
+          <td class="r prop-muted">${totalVentas>0?fi(totalVentas):'—'}</td>
+          <td class="r">${fi(totalGen)}</td>
+          <td class="r">${totalICP!==null?`<span style="font-weight:700">${totalICP.toFixed(1)}%</span>`:'—'}</td>
+          <td class="c prop-muted">${meses.reduce((s,m)=>s+byMes[m].q1.dias,0)}d · ${fi(meses.reduce((s,m)=>s+byMes[m].q1.take,0))}</td>
+          <td class="c prop-muted">${meses.reduce((s,m)=>s+byMes[m].q2.dias,0)}d · ${fi(meses.reduce((s,m)=>s+byMes[m].q2.take,0))}</td>
+          <td class="r prop-gold" style="font-size:14px">${fi(totalTake)}</td>
+          <td class="r" style="font-weight:700;color:${totalGen-totalTake>=0?'var(--green)':'var(--red)'}">${totalGen-totalTake>=0?'+':''}${fi(totalGen-totalTake)}</td>
         </tr>
       </tfoot>
     </table>
+    <div style="padding:12px 16px;font-size:9px;color:#444;border-top:1px solid #1a1a1a;line-height:1.8">
+      <strong style="color:#555">ICP</strong> Índice de Conversión de Propina = Propina generada / Ventas.
+      <span style="color:var(--green)">+13% excelente</span> ·
+      <span style="color:var(--gold)">10–13% bueno</span> ·
+      <span style="color:var(--red)">−10% a mejorar</span> ·
+      <strong style="color:#555">Balance</strong> positivo = aportás más al pool de lo que retirás.
+    </div>
   </div>`;
 
   el.innerHTML = html;
