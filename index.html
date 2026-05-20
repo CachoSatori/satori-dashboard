@@ -4810,16 +4810,98 @@ async function renderMisPropinas(el) {
             <span style="color:${ac};font-size:9px;margin-left:3px">${arr} ${Math.abs(delta).toFixed(1)}%</span>`;
   };
 
-  // ── 8. Render ─────────────────────────────────────────────────
+  // ── 8. Detectar rol cocina para vista especial ────────────────
+  const empRol = (EMPLEADOS_LOGIN.find(e => e.nombre.toUpperCase().trim() === nameUP)?.rol || '').toLowerCase();
+  const esCocina = empRol === 'cocina';
+
+  // ── 9. Render ─────────────────────────────────────────────────
   let html = moduleBreadcrumb('fin','Mis Propinas');
 
-  // KPIs mes actual
-  const curICP    = cur?.icp    ?? null;
-  const curIcpEq  = cur?.icpEq  ?? null;
   const curGen    = cur?.gen    ?? 0;
   const curTake   = cur?.take   ?? 0;
-  const curBal    = cur?.balance ?? 0;
   const curDias   = cur?.dias   ?? 0;
+
+  if (esCocina) {
+    // ── Vista cocina: sin ICP ni balance, solo take home por turnos ──
+    const avgDia = totalDias > 0 ? Math.round(totalTake / totalDias) : 0;
+    const curQ1  = cur?.q1 || { dias:0, take:0 };
+    const curQ2  = cur?.q2 || { dias:0, take:0 };
+    html += `
+      <div style="background:#1a0e08;border:1px solid #c23b2230;border-radius:2px;
+                  padding:10px 16px;margin-bottom:20px;font-size:9px;color:#c87060;letter-spacing:.08em">
+        Pool de cocina · Reparto igual sin importar horas · 8h fijas por turno
+      </div>
+      <div class="kpi-grid" style="margin-bottom:28px">
+        <div class="kpi">
+          <div class="kpi-label">Take home este mes</div>
+          <div class="kpi-val" style="color:var(--gold)">${fi(curTake)}</div>
+          <div class="kpi-sub">${curDias} turno${curDias!==1?'s':''} trabajados</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Q1 este mes</div>
+          <div class="kpi-val">${curQ1.take > 0 ? fi(curQ1.take) : '—'}</div>
+          <div class="kpi-sub">${curQ1.dias} turno${curQ1.dias!==1?'s':''}</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Q2 este mes</div>
+          <div class="kpi-val">${curQ2.take > 0 ? fi(curQ2.take) : '—'}</div>
+          <div class="kpi-sub">${curQ2.dias} turno${curQ2.dias!==1?'s':''}</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Promedio / turno</div>
+          <div class="kpi-val">${avgDia > 0 ? fi(avgDia) : '—'}</div>
+          <div class="kpi-sub">${totalDias} turnos totales registrados</div>
+        </div>
+      </div>`;
+    html += `<div class="prop-section">
+      <div class="prop-section-title">Historial mensual — propinas cocina</div>
+      <table class="prop-table" style="margin-top:12px">
+        <thead>
+          <tr>
+            <th>Mes</th>
+            <th class="r">Turnos</th>
+            <th class="c">Q1<br><span style="color:#444;font-size:7px">turnos · take</span></th>
+            <th class="c">Q2<br><span style="color:#444;font-size:7px">turnos · take</span></th>
+            <th class="r">Take home</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${meses.map(m => {
+            const d      = byMes[m];
+            const [y,mo] = m.split('-');
+            const esCur  = m === curKey;
+            return `<tr style="${esCur?'background:rgba(200,169,110,.04)':''}">
+              <td>
+                <span class="prop-mes-label">${_MESES_P[parseInt(mo)-1]}</span>
+                <span class="prop-mes-anio">${y}</span>
+                ${esCur?'<span class="prop-cur-badge">HOY</span>':''}
+              </td>
+              <td class="r prop-muted">${d.dias}</td>
+              <td class="c prop-muted" style="font-size:11px">${d.q1.dias>0?`${d.q1.dias}t · ${fi(d.q1.take)}`:'—'}</td>
+              <td class="c prop-muted" style="font-size:11px">${d.q2.dias>0?`${d.q2.dias}t · ${fi(d.q2.take)}`:'—'}</td>
+              <td class="r prop-gold">${fi(d.take)}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+        <tfoot>
+          <tr>
+            <td>TOTAL</td>
+            <td class="r prop-muted">${totalDias}</td>
+            <td class="c prop-muted">${meses.reduce((s,m)=>s+byMes[m].q1.dias,0)}t · ${fi(meses.reduce((s,m)=>s+byMes[m].q1.take,0))}</td>
+            <td class="c prop-muted">${meses.reduce((s,m)=>s+byMes[m].q2.dias,0)}t · ${fi(meses.reduce((s,m)=>s+byMes[m].q2.take,0))}</td>
+            <td class="r prop-gold" style="font-size:14px">${fi(totalTake)}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>`;
+    el.innerHTML = html;
+    return;
+  }
+
+  // ── Vista sala/bar/runner: ICP + balance pool ─────────────────
+  const curICP    = cur?.icp    ?? null;
+  const curIcpEq  = cur?.icpEq  ?? null;
+  const curBal    = cur?.balance ?? 0;
   const icpColor  = curICP === null ? '#f0ece4' : curICP >= 13 ? 'var(--green)' : curICP >= 10 ? 'var(--gold)' : 'var(--red)';
   const balColor  = curBal >= 0 ? 'var(--green)' : 'var(--red)';
   const icpVsEq   = curICP !== null && curIcpEq !== null
