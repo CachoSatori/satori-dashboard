@@ -1384,13 +1384,32 @@ const GGENERAL_TABS = [
   {id:'propinas-gerencial', label:'Propinas',   module:'fin'},
   {id:'cajeros',            label:'Cajeros',    module:'fin'},
 ];
-const SAL_TABS = [
-  {id:'mi-dia',           label:'Mi día',        module:'ops' },
-  {id:'mi-semana',        label:'Mi semana',     module:'ops' },
-  {id:'mi-historial',     label:'Mi historial',  module:'fin' },
-  {id:'mis-competencias', label:'Competencias',  module:'team'},
-  {id:'mis-propinas',     label:'Mis propinas',  module:'fin' },
-];
+// SAL_TABS ya no se usa directamente — buildEmployeeTabs() genera tabs dinámicos
+function buildEmployeeTabs(nombre) {
+  const nameUp = (nombre || '').toUpperCase().trim();
+  const tabs   = [];
+
+  // ¿Tiene ventas en los datos cargados?
+  const hasVentas = ALL_SALS.some(s => s.toUpperCase().trim() === nameUp);
+  if(hasVentas) {
+    tabs.push({id:'mi-dia',       label:'Mi día',       module:'ops'});
+    tabs.push({id:'mi-semana',    label:'Mi semana',    module:'ops'});
+    tabs.push({id:'mi-historial', label:'Mi historial', module:'fin'});
+  }
+
+  // ¿Participa en alguna competencia?
+  const hasComps = COMPS.some(c =>
+    (c.parts || []).some(p => p.toUpperCase().trim() === nameUp)
+  );
+  if(hasComps) {
+    tabs.push({id:'mis-competencias', label:'Competencias', module:'team'});
+  }
+
+  // Propinas — siempre
+  tabs.push({id:'mis-propinas', label:'Mis propinas', module:'fin'});
+
+  return tabs;
+}
 
 // Active module state
 let _activeModule = null;
@@ -1405,19 +1424,23 @@ function getModuleDefs() {
     {id:'ops',  label:'Operaciones', icon:'◈', cssClass:'mod-ops'},
     {id:'team', label:'Equipo',      icon:'◎', cssClass:'mod-team'},
   ];
-  if(MODE==='salonero') return [
+  // Empleados — devuelve solo módulos con tabs activos
+  const ALL_MOD_DEFS = [
     {id:'ops',  label:'Operaciones', icon:'◈', cssClass:'mod-ops'},
     {id:'fin',  label:'Finanzas',    icon:'◉', cssClass:'mod-fin'},
     {id:'team', label:'Equipo',      icon:'◎', cssClass:'mod-team'},
   ];
-  return MODULE_DEFS;
+  const empTabs = buildEmployeeTabs(CURRENT_USER);
+  const usedMods = new Set(empTabs.map(t => t.module));
+  return ALL_MOD_DEFS.filter(m => usedMods.has(m.id));
+}
 }
 
 function getTabs() {
   if(MODE==='owner')    return OWNER_TABS;
   if(MODE==='manager')  return MANAGER_TABS;
   if(MODE==='ggeneral') return GGENERAL_TABS;
-  return SAL_TABS;
+  return buildEmployeeTabs(CURRENT_USER);
 }
 
 function buildNav() {
