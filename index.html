@@ -525,7 +525,7 @@ header{
   padding:8px 12px;border-bottom:1px solid var(--border);text-align:left;font-weight:600;}
 .prop-table th.r{text-align:right;}
 .prop-table th.c{text-align:center;}
-.prop-table td{padding:11px 12px;border-bottom:1px solid #1a1a1a;font-size:12px;vertical-align:middle;}
+.prop-table td{padding:11px 12px;border-bottom:1px solid #1a1a1a;font-size:12px;vertical-align:middle;color:#c8c0b2;}
 .prop-table td.r{text-align:right;}
 .prop-table td.c{text-align:center;}
 .prop-table tr:hover td{background:rgba(255,255,255,.025);}
@@ -5350,6 +5350,130 @@ async function renderPropinasGerencial(el) {
       <strong style="color:#555">Q1</strong> días 1–15 · <strong style="color:#555">Q2</strong> días 16–fin de mes.
     </div>
   </div>`;
+
+  // ── Historial de empleados ────────────────────────────────────
+  const ROL_ORDER = ['salonero','barman','barback','runner','cocina','cajero','manager'];
+  const sectorMes = {}; // mes → rol → { total, count }
+  const empAll    = {};
+  turnos.forEach(t => {
+    const mes = t.fecha.substring(0,7);
+    (t.datos?.lineas || []).forEach(l => {
+      const nombre = (l.nombre||'').toUpperCase().trim();
+      const rol    = l.rol || 'sin_rol';
+      const key    = nombre + '|' + rol;
+      if(!empAll[key]) empAll[key] = { nombre, rol, total:0, dias:0 };
+      empAll[key].total += l.take_home || 0;
+      empAll[key].dias++;
+      if(!sectorMes[mes])      sectorMes[mes]      = {};
+      if(!sectorMes[mes][rol]) sectorMes[mes][rol] = { total:0, count:0 };
+      sectorMes[mes][rol].total += l.take_home || 0;
+      sectorMes[mes][rol].count++;
+    });
+  });
+  const empList = Object.values(empAll).sort((a,b) => b.total - a.total);
+
+  // Sección A — Resumen histórico todos los empleados
+  if(empList.length) {
+    const rolesPresentes = ROL_ORDER.filter(r => empList.some(e => e.rol === r));
+    const otrosRoles = [...new Set(empList.map(e => e.rol))].filter(r => !ROL_ORDER.includes(r));
+    const allRoles = [...rolesPresentes, ...otrosRoles];
+
+    let bodyA = '';
+    let grandTotal = 0;
+    allRoles.forEach(rol => {
+      const emps = empList.filter(e => e.rol === rol);
+      if(!emps.length) return;
+      const rolTotal = emps.reduce((s,e) => s + e.total, 0);
+      grandTotal += rolTotal;
+      bodyA += `<tr style="background:rgba(200,169,110,.04)">
+        <td colspan="4" style="font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--gold);font-weight:700;padding:8px 12px 6px">${rol}</td>
+      </tr>`;
+      emps.forEach(e => {
+        const prom = e.dias > 0 ? e.total / e.dias : 0;
+        bodyA += `<tr>
+          <td style="padding-left:20px">${e.nombre}</td>
+          <td class="r prop-muted">${e.dias}</td>
+          <td class="r">${fi(prom)}</td>
+          <td class="r prop-gold">${fi(e.total)}</td>
+        </tr>`;
+      });
+      bodyA += `<tr style="background:rgba(255,255,255,.02)">
+        <td style="padding-left:20px;font-size:10px;color:#555">Subtotal ${rol}</td>
+        <td class="r prop-muted">—</td>
+        <td class="r prop-muted">—</td>
+        <td class="r" style="font-weight:700;color:var(--gold)">${fi(rolTotal)}</td>
+      </tr>`;
+    });
+
+    html += `<div class="prop-section" style="margin-top:28px">
+      <div class="prop-section-title">Resumen histórico — todos los empleados</div>
+      <table class="prop-table" style="margin-top:12px">
+        <thead>
+          <tr>
+            <th>Empleado</th>
+            <th class="r">Días</th>
+            <th class="r">Prom/día</th>
+            <th class="r">Total acumulado</th>
+          </tr>
+        </thead>
+        <tbody>${bodyA}</tbody>
+        <tfoot>
+          <tr>
+            <td>GRAN TOTAL</td>
+            <td class="r prop-muted">—</td>
+            <td class="r prop-muted">—</td>
+            <td class="r prop-gold" style="font-size:14px">${fi(grandTotal)}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>`;
+  }
+
+  // Sección B — Promedio por sector mes a mes
+  const mesesSector = Object.keys(sectorMes).sort().reverse();
+  const sectoresPrincipales = ['salonero','barman','barback','runner','cocina'];
+  if(mesesSector.length) {
+    const sectoresConDatos = sectoresPrincipales.filter(s =>
+      mesesSector.some(m => sectorMes[m]?.[s]?.count > 0)
+    );
+    if(sectoresConDatos.length) {
+      const thsB = sectoresConDatos.map(s =>
+        `<th class="r" style="text-transform:capitalize">${s}</th>`
+      ).join('');
+      const rowsB = mesesSector.map(m => {
+        const [y,mo] = m.split('-');
+        const cells = sectoresConDatos.map(s => {
+          const d = sectorMes[m]?.[s];
+          if(!d || d.count === 0) return `<td class="r prop-muted">—</td>`;
+          return `<td class="r">${fi(d.total / d.count)}</td>`;
+        }).join('');
+        return `<tr>
+          <td>
+            <span class="prop-mes-label">${_MESES_P[parseInt(mo)-1]}</span>
+            <span class="prop-mes-anio">${y}</span>
+            ${m === curKey ? '<span class="prop-cur-badge">HOY</span>' : ''}
+          </td>
+          ${cells}
+        </tr>`;
+      }).join('');
+
+      html += `<div class="prop-section" style="margin-top:20px;margin-bottom:28px">
+        <div class="prop-section-title">Promedio por sector — mes a mes</div>
+        <table class="prop-table" style="margin-top:12px">
+          <thead>
+            <tr>
+              <th>Mes</th>
+              ${thsB}
+            </tr>
+          </thead>
+          <tbody>${rowsB}</tbody>
+        </table>
+        <div style="padding:10px 16px;font-size:9px;color:#444;border-top:1px solid #1a1a1a">
+          Promedio de take home por empleado activo en el sector ese mes.
+        </div>
+      </div>`;
+    }
+  }
 
   el.innerHTML = html;
 }
