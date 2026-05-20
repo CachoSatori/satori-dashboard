@@ -1434,7 +1434,6 @@ function getModuleDefs() {
   const usedMods = new Set(empTabs.map(t => t.module));
   return ALL_MOD_DEFS.filter(m => usedMods.has(m.id));
 }
-}
 
 function getTabs() {
   if(MODE==='owner')    return OWNER_TABS;
