@@ -3301,15 +3301,8 @@ function parseXLS(file, fecha, onDone){
           alert('No se pudo guardar en Sheets. Verificá tu conexión y reintentá.');
           return;
         }
-        // Sync new employee names to Propinas (background, silent)
-        const propNames = Object.keys(result).filter(n => !isCajero(n));
-        if (propNames.length) {
-          fetch(BACKEND_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ key: 'satori2026', action: 'syncEmpleadosDashboard', nombres: propNames })
-          }).catch(() => {});
-        }
+        // syncEmpleadosDashboard desactivado: la lista de empleados
+        // se gestiona únicamente desde el admin de Propinas.
         // Update competitions solo si se guardó
         updateCompsFromDay(fecha, result);
         if(!onDone) {
