@@ -78,7 +78,7 @@ const MANAGER_PIN = '****'; // PIN del manager
 | **📊 Evaluación** | Metas mensuales (restaurante + individuales), barra de progreso, proyección al cierre, tabla de evaluación con consistencia y tendencia |
 | **📂 Subir XLS** | Upload múltiple con detección de fecha por nombre de archivo, calendario visual de días cargados |
 | **🏆 Competencias** | Sistema de competencias con puntos por producto, ranking en tiempo real |
-| **🔑 Config** | Solo Owner: muestra PINs actuales, configurar URL del backend |
+| **🔑 Config** | Solo Owner: muestra PINs actuales, configurar URL del backend, enviar reportes mensuales por correo |
 
 ### Salonero (acceso personal)
 | Pestaña | Descripción |
@@ -224,6 +224,42 @@ El sistema detecta automáticamente la fecha desde el nombre del archivo:
 
 ---
 
+## 📧 Reportes Mensuales por correo
+
+Desde **Config** (solo Owner), tres botones envían reportes a satorisushibar@gmail.com:
+
+| Botón | Acción |
+|---|---|
+| 📈 Reporte de ventas | Envía el reporte de ventas del mes actual |
+| 💰 Reporte de propinas | Envía el reporte de propinas del mes actual |
+| 📧 Ambos reportes | Envía ambos en un solo clic |
+
+Los reportes también se envían **automáticamente**:
+- **Día 1 de cada mes** → mes anterior completo (trigger `reporteMensualCompleto`)
+- **Día 15 de cada mes** → mes en curso hasta esa fecha (trigger `reporteQuincenal`)
+
+Ver documentación completa del sistema de reportes en: `/reporte/README.md`
+
+---
+
+## 🏆 IRS — Índice de Rendimiento del Salonero
+
+Métrica compuesta (0–100) incluida en los reportes mensuales para identificar al mejor empleado del mes:
+
+```
+IRS = (Ticket/PAX normalizado × 45%)
+    + (Constancia × 35%)
+    + (PAX/servicio normalizado × 20%)
+```
+
+| Componente | Peso | Descripción |
+|---|---|---|
+| Ticket/PAX | 45% | Cuánto vende por comensal (normalizado vs el mejor del grupo) |
+| Constancia | 35% | % de días trabajados del total de días con ventas en el mes |
+| PAX/servicio | 20% | Cuántos comensales atiende por servicio (normalizado) |
+
+---
+
 ## 🗺 Roadmap
 
 | Fase | Estado | Descripción |
@@ -250,6 +286,10 @@ El sistema detecta automáticamente la fecha desde el nombre del archivo:
 | Filtros de fecha no aplicaban en Safari | Polling 300ms + change/input/blur events |
 | Uds incorrectas en ranking competencias | Usar `_units` separado de `_total` en ranking |
 | Datos demo 09/03 aparecían tras reload | DB_VERSION bump a v3 + wipe localStorage |
+| Reporte: Mix C/B mostraba ₡ en vez de ítems | `iCom`/`iBeb` son cantidades, no montos — formato corregido |
+| Reporte: Tendencia semanal sin días ni promedio | Agregar `dias` y `avg` por semana en `_calcVentas` |
+| Reporte: Promedio por día ×12 veces | `diaMap` usaba totales por salonero → corregido a totales por día |
+| Reporte: Delivery sumado doble en Caja | `ventCaj = total - delivery`, no `total` completo del cajero |
 
 ---
 
@@ -269,4 +309,5 @@ Conocidos: `Dolores`, `Rocio`, `Jaime`, `Melani`, `Nacho`, `Jota`, `Joaquina`, `
 | v3 | Fix fecha como Date object + @STRING@ format |
 | v4 | Fix saveDia con normalización de fecha |
 | v5 | getMetas/saveMetas + cajeros + saveMetas via GET fallback |
-| v6 | saveMetas en GET handler para compatibilidad total *(versión actual)* |
+| v6 | saveMetas en GET handler para compatibilidad total |
+| v4.1 (propinas) | Reportes por correo, IRS, top productos por tipo, fix delivery vs caja, mes actual vs anterior, trigger quincenal *(versión actual)* |
