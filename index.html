@@ -5161,6 +5161,60 @@ async function renderPropinasGerencial(el) {
     </div>
   </div>`;
 
+  // ── AM vs PM (mes actual) ─────────────────────────────────────
+  const turnosMes = turnos.filter(t => t.fecha.startsWith(curKey));
+  const amT = turnosMes.filter(t => (t.datos?.turno||'PM') === 'AM');
+  const pmT = turnosMes.filter(t => (t.datos?.turno||'PM') !== 'AM');
+  const avgAM = amT.length ? amT.reduce((s,t)=>s+(t.datos?.pool_total||0),0)/amT.length : 0;
+  const avgPM = pmT.length ? pmT.reduce((s,t)=>s+(t.datos?.pool_total||0),0)/pmT.length : 0;
+  const totAM = amT.reduce((s,t)=>s+(t.datos?.pool_total||0),0);
+  const totPM = pmT.reduce((s,t)=>s+(t.datos?.pool_total||0),0);
+
+  if(amT.length || pmT.length) {
+    html += `<div class="kpi-grid" style="grid-template-columns:1fr 1fr;margin-bottom:28px">
+      <div class="kpi" style="border-left:3px solid var(--teal)">
+        <div class="kpi-label">Promedio turno AM</div>
+        <div class="kpi-val" style="color:var(--teal)">${amT.length ? fi(avgAM) : '—'}</div>
+        <div class="kpi-sub">${amT.length} turno${amT.length!==1?'s':''} · total ${fi(totAM)}</div>
+      </div>
+      <div class="kpi" style="border-left:3px solid var(--gold)">
+        <div class="kpi-label">Promedio turno PM</div>
+        <div class="kpi-val">${pmT.length ? fi(avgPM) : '—'}</div>
+        <div class="kpi-sub">${pmT.length} turno${pmT.length!==1?'s':''} · total ${fi(totPM)}</div>
+      </div>
+    </div>`;
+  }
+
+  // ── Tendencia semanal (mes actual) ────────────────────────────
+  const semActual = {};
+  turnosMes.forEach(t => {
+    const s = t.num_semana || '?';
+    if(!semActual[s]) semActual[s] = { am:0, pm:0, total:0, count:0 };
+    const isAM = (t.datos?.turno||'PM') === 'AM';
+    semActual[s].total += t.datos?.pool_total || 0;
+    semActual[s].count++;
+    if(isAM) semActual[s].am += t.datos?.pool_total || 0;
+    else      semActual[s].pm += t.datos?.pool_total || 0;
+  });
+  const semsActArr = Object.entries(semActual).sort((a,b)=>a[0].localeCompare(b[0]));
+  const maxSemAct  = Math.max(...semsActArr.map(([,v])=>v.total), 1);
+  if(semsActArr.length > 1) {
+    html += `<div class="prop-section" style="margin-bottom:28px">
+      <div class="prop-section-title">Pool por semana — ${_MESES_P[parseInt(cm)-1]} ${cy}</div>
+      <div style="padding:16px 18px;display:flex;flex-direction:column;gap:11px">
+        ${semsActArr.map(([sem,v]) => `
+          <div style="display:grid;grid-template-columns:100px 1fr 120px 120px;align-items:center;gap:12px">
+            <div style="font-size:10px;color:#666">${sem} <span style="color:#444;font-size:9px">(${v.count}t)</span></div>
+            <div style="height:7px;background:#1a1a1a;border-radius:4px;overflow:hidden">
+              <div style="height:100%;border-radius:4px;background:var(--gold);width:${Math.round(v.total/maxSemAct*100)}%"></div>
+            </div>
+            <div style="font-size:11px;color:#c0b898;text-align:right;font-family:Syne,sans-serif;font-weight:700">${fi(v.total)}</div>
+            <div style="font-size:9px;color:#555;text-align:right">${v.am?'AM '+fi(v.am):''}${v.am&&v.pm?' · ':''}${v.pm?'PM '+fi(v.pm):''}</div>
+          </div>`).join('')}
+      </div>
+    </div>`;
+  }
+
   // ── Alertas ───────────────────────────────────────────────────
   if(alertas.length) {
     html += `<div style="background:#1a0808;border:1px solid #4a1a1a;border-radius:3px;padding:14px 18px;margin-bottom:24px">
