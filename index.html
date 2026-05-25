@@ -4075,16 +4075,18 @@ function renderSemana(el){
     tbl.innerHTML = `<thead><tr style="background:#090909;">
       <th style="padding:6px 10px;text-align:left;font-size:8px;letter-spacing:.12em;color:#555;font-weight:400">FECHA</th>
       <th style="padding:6px 10px;text-align:center;font-size:8px;letter-spacing:.12em;color:#555;font-weight:400">DÍA</th>
-      <th style="padding:6px 10px;text-align:right;font-size:8px;letter-spacing:.12em;color:#555;font-weight:400">VENTAS</th>
+      <th style="padding:6px 10px;text-align:right;font-size:8px;letter-spacing:.12em;color:#555;font-weight:400">RESTAURANTE</th>
+      <th style="padding:6px 10px;text-align:right;font-size:8px;letter-spacing:.12em;color:#888;font-weight:400">SALÓN</th>
       <th style="padding:6px 10px;text-align:center;font-size:8px;letter-spacing:.12em;color:#555;font-weight:400">PAX</th>
       <th style="padding:6px 10px;text-align:right;font-size:8px;letter-spacing:.12em;color:#555;font-weight:400">PROM/PAX</th>
     </tr></thead>`;
     const tbody = document.createElement('tbody');
 
     dates.forEach((d, i) => {
-      const dow   = new Date(d+'T12:00:00').getDay();
-      const gen   = aggGeneral([d]);
-      const total = gen.totalRest || gen.total;
+      const dow      = new Date(d+'T12:00:00').getDay();
+      const gen      = aggGeneral([d]);
+      const totalRest = gen.totalRest || gen.total;   // restaurante completo (salón + delivery)
+      const totalSal  = gen.total;                     // solo salón (mismo base que prom/pax)
       const isBest  = d === bestD;
       const isWorst = d === worstD && monthData.length > 1;
       let bg = i%2===0?'transparent':'rgba(0,0,0,.02)';
@@ -4099,7 +4101,8 @@ function renderSemana(el){
       tr.innerHTML = `
         <td style="padding:7px 10px;color:${color};font-weight:${isBest||isWorst?'700':'400'}">${badge}${fmtDate(d)}</td>
         <td style="padding:7px 10px;text-align:center;color:#666">${DAYS_SHORT[dow]}</td>
-        <td style="padding:7px 10px;text-align:right;font-weight:700;color:${color||'var(--gold)'}">${fi(total)}</td>
+        <td style="padding:7px 10px;text-align:right;font-weight:700;color:${color||'var(--gold)'}">${fi(totalRest)}</td>
+        <td style="padding:7px 10px;text-align:right;color:#888">${gen.cajTotal>0?fi(totalSal):'—'}</td>
         <td style="padding:7px 10px;text-align:center;color:#888">${gen.pax}</td>
         <td style="padding:7px 10px;text-align:right;color:#888">${fi(gen.promPax)}</td>`;
       tbody.appendChild(tr);
@@ -5746,7 +5749,7 @@ function renderMiSemana(el){
     const datesForDow = Object.keys(DIAS).filter(date => new Date(date+'T12:00:00').getDay()===dow);
     datesForDow.forEach(date => {
       Object.values(DIAS[date]?.saloneros||{}).forEach(s => {
-        genVt += s.total||0; genPax += s.pax||0;
+        if(!s.esCajero){ genVt += s.total||0; genPax += s.pax||0; } // excluir cajero/delivery
       });
     });
     const genProm = genPax ? genVt/genPax : 0;
@@ -6563,7 +6566,7 @@ function renderContabilidad(el){
     const salon      = nonCaj.reduce((a,s) => a+(s.total||0), 0);
     const delivery   = caj.reduce((a,s)   => a+(s.delivery||s.total||0), 0);
     const pax        = nonCaj.reduce((a,s) => a+(s.pax||0), 0);
-    const promedio   = pax ? ventaNeta/pax : 0;
+    const promedio   = pax ? salon/pax : 0;   // salon-only / salon-pax (delivery no tiene PAX)
 
     const dateObj = new Date(d + 'T12:00:00');
     const dow = DOW[dateObj.getDay()];
@@ -6582,7 +6585,7 @@ function renderContabilidad(el){
     delivery:   a.delivery+r.delivery,
     pax:        a.pax+r.pax,
   }), {ventaBruta:0,iva:0,serv:0,ventaNeta:0,salon:0,delivery:0,pax:0});
-  tot.promedio = tot.pax ? tot.ventaNeta/tot.pax : 0;
+  tot.promedio = tot.pax ? tot.salon/tot.pax : 0;   // salon-only / salon-pax (mismo criterio que Historico)
 
   // ── Title ──────────────────────────────────────────────────────
   const title = document.createElement('div');
@@ -8697,7 +8700,7 @@ function renderAnalisis(el) {
       days++;
     });
     return { ventaNeta, ventaBruta, iva, serv, salon, delivery, pax,
-             promPax: pax?Math.round(ventaNeta/pax):0, days };
+             promPax: pax?Math.round(salon/pax):0, days };  // salon-only / salon-pax
   }
 
   const allDates = getAllDates();
@@ -8941,7 +8944,7 @@ function renderAnalisis(el) {
       <td style="padding:10px;text-align:right;color:#888">${fi(totals.iva)}</td>
       <td style="padding:10px;text-align:right;color:#888">${fi(totals.serv)}</td>
       <td style="padding:10px;text-align:right;color:#888">${Math.round(totals.pax).toLocaleString('es-CR')}</td>
-      <td style="padding:10px;text-align:right;color:#888">${fi(Math.round(totals.ventaNeta/Math.max(totals.pax,1)))}</td>
+      <td style="padding:10px;text-align:right;color:#888">${fi(yrTot.promPax)}</td>
       <td style="padding:10px;text-align:right;color:var(--green)">${avgMpct?avgMpct+'%':'—'}</td>
       <td style="padding:10px;text-align:right;color:var(--green)">${totals.margen?fi(totals.margen):'—'}</td>`;
     tb2.appendChild(totTr2); tbl2.appendChild(tb2); el.appendChild(tbl2);
