@@ -5532,6 +5532,156 @@ async function renderPropinasGerencial(el) {
     }
   }
 
+  // ── Cocina — Pool semanal (distribución igual, excl. Selena) ──────────────
+  const isSelena = n => (n||'').toUpperCase().trim().startsWith('SELENA');
+  // cocinaMes[mes][sem] = { pool:Number, workers:Set<nombre> }
+  const cocinaMes = {};
+  turnos.forEach(t => {
+    const mes = t.fecha.substring(0,7);
+    if(!mes || mes.length < 7) return;
+    const sem = t.num_semana || ('S'+Math.ceil(parseInt(t.fecha.split('-')[2]||'1')/7));
+    if(!cocinaMes[mes]) cocinaMes[mes] = {};
+    if(!cocinaMes[mes][sem]) cocinaMes[mes][sem] = { pool:0, workers:new Set() };
+    (t.datos?.lineas||[]).forEach(l => {
+      if(l.rol !== 'cocina') return;
+      cocinaMes[mes][sem].pool += l.take_home || 0;
+      if(!isSelena(l.nombre))
+        cocinaMes[mes][sem].workers.add((l.nombre||'').toUpperCase().trim());
+    });
+  });
+  // Eliminar semanas sin pool
+  Object.keys(cocinaMes).forEach(m => {
+    Object.keys(cocinaMes[m]).forEach(s => { if(!cocinaMes[m][s].pool) delete cocinaMes[m][s]; });
+    if(!Object.keys(cocinaMes[m]).length) delete cocinaMes[m];
+  });
+
+  if(Object.keys(cocinaMes).length) {
+    const cocSemsCur = Object.entries(cocinaMes[curKey]||{}).sort((a,b)=>a[0].localeCompare(b[0]));
+    const cocPoolCur = cocSemsCur.reduce((s,[,v])=>s+v.pool, 0);
+
+    // Por trabajador — mes actual
+    const cocWCur = {};
+    cocSemsCur.forEach(([,v]) => {
+      if(!v.workers.size) return;
+      const take = v.pool / v.workers.size;
+      v.workers.forEach(n => {
+        if(!cocWCur[n]) cocWCur[n] = { sems:0, total:0 };
+        cocWCur[n].sems++;
+        cocWCur[n].total += take;
+      });
+    });
+    const cocWList = Object.entries(cocWCur).sort((a,b)=>b[1].total-a[1].total);
+    const mesesCoc  = Object.keys(cocinaMes).sort().reverse();
+
+    html += `
+    <div class="prop-section" style="margin-top:28px;border-left:3px solid #c87a5a">
+      <div class="prop-section-title" style="color:#c87a5a">🍳 Cocina — Pool semanal</div>
+      <div style="padding:8px 16px;font-size:9px;color:#666;border-bottom:1px solid #1a1a1a">
+        Reparto igual entre trabajadores activos por semana · Selena excluida como receptora
+      </div>`;
+
+    if(cocSemsCur.length) {
+      html += `
+      <div style="padding:12px 18px 6px;font-size:10px;color:#888;letter-spacing:.1em;text-transform:uppercase">
+        ${_MESES_P[parseInt(cm)-1]} ${cy} · Por semana
+      </div>
+      <table class="prop-table">
+        <thead><tr>
+          <th>Semana</th>
+          <th class="r">Pool cocina</th>
+          <th class="c">Trabajadores</th>
+          <th class="r">Take-home c/u</th>
+        </tr></thead>
+        <tbody>
+          ${cocSemsCur.map(([sem,v]) => {
+            const take = v.workers.size > 0 ? Math.round(v.pool / v.workers.size) : 0;
+            return `<tr>
+              <td style="color:#999">${sem}</td>
+              <td class="r">${fi(v.pool)}</td>
+              <td class="c prop-muted">${v.workers.size}</td>
+              <td class="r prop-gold">${take > 0 ? fi(take) : '—'}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+        <tfoot><tr>
+          <td>TOTAL ${_MESES_P[parseInt(cm)-1].toUpperCase()}</td>
+          <td class="r">${fi(cocPoolCur)}</td>
+          <td class="c prop-muted">—</td>
+          <td class="r prop-gold">—</td>
+        </tr></tfoot>
+      </table>`;
+
+      if(cocWList.length) {
+        html += `
+      <div style="padding:12px 18px 6px;font-size:10px;color:#888;letter-spacing:.1em;text-transform:uppercase;border-top:1px solid #1a1a1a">
+        ${_MESES_P[parseInt(cm)-1]} ${cy} · Por trabajador
+      </div>
+      <table class="prop-table">
+        <thead><tr>
+          <th>Trabajador</th>
+          <th class="c">Semanas</th>
+          <th class="r">Total mes</th>
+        </tr></thead>
+        <tbody>
+          ${cocWList.map(([nombre,d]) => `<tr>
+            <td>${nombre}</td>
+            <td class="c prop-muted">${d.sems}</td>
+            <td class="r prop-gold">${fi(Math.round(d.total))}</td>
+          </tr>`).join('')}
+        </tbody>
+        <tfoot><tr>
+          <td>TOTAL</td>
+          <td class="c prop-muted">—</td>
+          <td class="r prop-gold" style="font-size:14px">${fi(Math.round(cocPoolCur))}</td>
+        </tr></tfoot>
+      </table>`;
+      }
+    } else {
+      html += `<div style="padding:16px 18px;font-size:11px;color:#444">
+        Sin turnos de cocina registrados para ${_MESES_P[parseInt(cm)-1]} ${cy}.
+      </div>`;
+    }
+
+    // Histórico mensual (solo si hay más de un mes o el único no es el actual)
+    if(mesesCoc.length > 1 || (mesesCoc.length === 1 && mesesCoc[0] !== curKey)) {
+      html += `
+      <div style="padding:12px 18px 6px;font-size:10px;color:#888;letter-spacing:.1em;text-transform:uppercase;border-top:1px solid #1a1a1a">
+        Histórico mensual
+      </div>
+      <table class="prop-table">
+        <thead><tr>
+          <th>Mes</th>
+          <th class="r">Pool total</th>
+          <th class="c">Semanas</th>
+          <th class="r">Prom/sem/empleado</th>
+        </tr></thead>
+        <tbody>
+          ${mesesCoc.map(m => {
+            const sems   = Object.entries(cocinaMes[m]).sort((a,b)=>a[0].localeCompare(b[0]));
+            const poolM  = sems.reduce((s,[,v])=>s+v.pool, 0);
+            const [y,mo] = m.split('-');
+            const esCur  = m === curKey;
+            const validSems = sems.filter(([,v])=>v.workers.size>0);
+            const promSem = validSems.length ?
+              validSems.reduce((s,[,v])=>s+Math.round(v.pool/v.workers.size),0)/validSems.length : 0;
+            return `<tr style="${esCur?'background:rgba(200,169,110,.04)':''}">
+              <td>
+                <span class="prop-mes-label">${_MESES_P[parseInt(mo)-1]}</span>
+                <span class="prop-mes-anio">${y}</span>
+                ${esCur?'<span class="prop-cur-badge">HOY</span>':''}
+              </td>
+              <td class="r">${fi(poolM)}</td>
+              <td class="c prop-muted">${sems.length}</td>
+              <td class="r prop-gold">${promSem > 0 ? fi(Math.round(promSem)) : '—'}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>`;
+    }
+
+    html += `</div>`;
+  }
+
   el.innerHTML = html;
 }
 // ─────────────────────────────────────────────────────────────────────────────
