@@ -1,4 +1,4 @@
-# 里 Satori Dashboard · Saloneros
+# 里 Satori Dashboard
 
 Dashboard de métricas de desempeño para el restaurante Satori (Costa Rica).  
 Construido como aplicación web HTML puro + Google Sheets como backend.
@@ -9,9 +9,12 @@ Construido como aplicación web HTML puro + Google Sheets como backend.
 
 | Recurso | URL |
 |---|---|
-| Dashboard en producción | https://cachosatori.github.io/satori-dashboard/ |
+| App en producción | https://cachosatori.github.io/satori-dashboard/ |
 | Repositorio GitHub | https://github.com/CachoSatori/satori-dashboard |
 | Apps Script URL | `https://script.google.com/macros/s/AKfycbz_MPh6TFtM6ToY_2CbbdHvtyKCwGg5uFPzYpw-9vcTtmtXX5BDIpnqE3KJgKtZwFBkeg/exec` |
+
+> Mismo Apps Script y Google Sheet que Satori Caja y Satori Propinas.  
+> Google Sheets ID: `1DP-gmuNO__QQbl0_2eBDIiLGz9ovvSVhQ5uaAuIqlm0`
 
 ---
 
@@ -19,8 +22,8 @@ Construido como aplicación web HTML puro + Google Sheets como backend.
 
 ```
 satori-dashboard/
-├── index.html               ← Dashboard completo (frontend + parser XLS)
-├── satori_apps_script.js    ← Backend Google Apps Script
+├── index.html               ← App completa (frontend + parser XLS)
+├── satori_apps_script.js    ← Backend Google Apps Script (referencia)
 └── README.md                ← Este archivo
 ```
 
@@ -29,285 +32,176 @@ satori-dashboard/
 ## 🏗 Arquitectura
 
 ```
-XLS del PoS (BIFF8/OLE2)
+XLS del POS (BIFF8/OLE2)
         ↓
   Manager sube desde cualquier dispositivo
         ↓
   Parser JS nativo en el browser (sin librerías externas)
         ↓
-  Google Sheets (backend central vía Apps Script)
+  Google Sheets (backend central vía Apps Script v4.1)
         ↓
   Cualquier dispositivo sincroniza y renderiza
 ```
 
 **Stack:**
-- **Frontend:** HTML/CSS/JS puro — sin frameworks ni dependencias externas
+- **Frontend:** HTML/CSS/JS puro — sin frameworks ni dependencias
 - **Backend:** Google Apps Script (Web App) sobre Google Sheets
-- **Hosting:** GitHub Pages (gratuito)
-- **Persistencia:** Google Sheets como fuente de verdad + localStorage como cache offline
+- **Hosting:** GitHub Pages
+- **Persistencia:** Google Sheets como fuente de verdad + `localStorage` como caché offline
 
 ---
 
-## 🔐 Sistema de acceso
+## 🔐 Roles y acceso
 
-| Rol | Acceso | PIN |
+| Rol | PIN | Descripción |
 |---|---|---|
-| **Owner** | Todo + pestaña Config | `OWNER_PIN` hardcodeado en `index.html` |
-| **Manager** | Todo excepto Config | `MANAGER_PIN` hardcodeado en `index.html` |
-| **Salonero** | Solo sus propias vistas | Sin PIN — selecciona su nombre |
+| **Owner** | `3194` | Acceso completo — todas las pestañas + Admin |
+| **Manager** | `1959` | Operaciones + Equipo (sin Admin) |
+| **G.General** | `1234` | Solo módulo Finanzas |
+| **Salonero / Empleado** | Sin PIN | Selecciona su nombre — ve solo sus propias métricas |
 
-Para cambiar un PIN: editá `index.html` en GitHub, buscá `OWNER_PIN` o `MANAGER_PIN`, cambiá el valor, hacé commit.
-
-```javascript
-const OWNER_PIN   = '****'; // Tu PIN privado
-const MANAGER_PIN = '****'; // PIN del manager
-```
+Los PINs están hardcodeados en `index.html`. Para cambiarlos: editar `OWNER_PIN`, `MANAGER_PIN` o `CONTADOR_PIN` en el código fuente y hacer commit.
 
 ---
 
-## 📊 Vistas por rol
+## 📊 Pestañas por rol
 
-### Manager / Owner
+### Owner — Operaciones
 | Pestaña | Descripción |
 |---|---|
-| **Resumen** | KPIs del último día: ventas totales restaurante (salón + cajeros + delivery), PAX, Prom/PAX, Prom/Plato, Prom/Bebida, Beb/PAX, ratio C/B. Ranking de saloneros sorteable. |
-| **Histórico** | Gráfico de evolución Prom/PAX por salonero + KPIs acumulados del rango seleccionado |
-| **Por Salonero** | Cards con todas las métricas individuales + top 5 productos acumulados del período |
-| **📅 Por Día** | Tendencias por día de semana: tarjetas, matriz salonero×día, gráfico |
-| **🧾 Cajeros** | Ventas Turno Mañana + Turno Tarde con desglose Delivery vs Salón, filtro por rango, totales período, promedio por día de semana |
-| **📊 Evaluación** | Metas mensuales (restaurante + individuales), barra de progreso, proyección al cierre, tabla de evaluación con consistencia y tendencia |
-| **📂 Subir XLS** | Upload múltiple con detección de fecha por nombre de archivo, calendario visual de días cargados |
-| **🏆 Competencias** | Sistema de competencias con puntos por producto, ranking en tiempo real |
-| **🔑 Config** | Solo Owner: muestra PINs actuales, configurar URL del backend, enviar reportes mensuales por correo |
+| **Hoy** | KPIs del último día: ventas totales restaurante (salón + cajeros + delivery), PAX, Prom/PAX, ratio C/B, Beb/PAX, ranking del día |
+| **Equipo** | Ranking de saloneros del día con KPIs individuales y detalle de productos |
+| **Cajeros** | Ventas por cajero/canal de delivery con filtro de fechas y desglose por período |
+| **Calendario** | Promedios por día de semana, gráfico de evolución diaria, tabla cronológica con columnas RESTAURANTE · SALÓN · PAX · PROM/PAX |
+| **Cargar XLS** | Upload de reportes diarios del POS, calendario visual de días cargados, backend config, backup/restauración JSON |
 
-### Salonero (acceso personal)
+### Owner — Finanzas
 | Pestaña | Descripción |
 |---|---|
-| **Mi día** | KPIs personales del último día vs promedio general |
-| **Mi historial** | Evolución personal con rango de fechas + top 5 productos |
-| **📅 Mi semana** | Rendimiento por día de semana + comparativa vs restaurante |
-| **🏆 Mis competencias** | Competencias activas y posición personal |
+| **Ventas** | Tabla contable por período: Venta Bruta · IVA · Servicio · Venta Neta · Salón · Delivery · PAX · Prom/PAX. Exportar CSV |
+| **Análisis** | Comparativa mensual año vs año + vista por año individual. Incluye margen del contador si está configurado |
+| **Histórico** | KPIs acumulados con filtro libre de fechas, gráfico de evolución Prom/PAX, Top 5 productos del período |
+| **Mix Ventas** | Desglose por producto/categoría. Modos: ver período único o comparar hasta 6 períodos. Exportar CSV |
+| **Metas** | Meta mensual restaurante, % margen contador, metas globales de performance (Prom/PAX, Beb/PAX, Ratio C/B, etc.), overrides individuales por salonero |
+| **Propinas** | Resumen gerencial: ICP por salonero, ranking, Q1 vs Q2, tendencia semanal, histórico mensual. **Sección Cocina:** pool semanal dividido en partes iguales (excl. Selena) |
 
----
-
-## 📐 Métricas implementadas
-
-### Por salonero
-- **Ventas totales netas** — sin IVA (13%) ni Servicio (10%)
-- **PAX** — comensales atendidos (item PAX del XLS)
-- **Prom/PAX** — ticket promedio por comensal
-- **Ventas Comidas / Ventas Bebidas** — columnas L/M del XLS
-- **iCom / iBeb** — cantidad de platos y bebidas
-- **Prom/Plato** — precio promedio por plato
-- **Prom/Bebida** — precio promedio por bebida
-- **Beb/PAX** — bebidas por comensal (semáforo: 🟢≥1.2 🟡0.8–1.2 🔴<0.8)
-- **Ratio C/B en ₡** — colones de comida por cada colón de bebida (ideal 2.5–4.5)
-- **Ratio C/B en uds** — platos por cada bebida (ideal 1.5–3.5)
-- **Top 5 productos** — acumulado por rango de fechas
-
-### Por cajero
-- **Total netas** — delivery + salón
-- **Delivery** — ventas sin cargo de servicio (col F = 0)
-- **Salón** — ventas con cargo de servicio (col F > 0)
-- **Ticket promedio** — por orden
-- **% Delivery / % Salón** del total
-
-### Restaurante
-- **Ventas Totales Restaurante** = Saloneros + Cajeros
-- **% Salón / % Delivery** del total
-- **Meta mensual** con barra de progreso y proyección al cierre del mes
-
-### Evaluación de saloneros
-- **Consistencia** — % días sobre el promedio general del restaurante
-- **Tendencia** — comparación primera vs segunda mitad del período (↗↘→)
-- **vs General** — diferencia % vs promedio del restaurante esos mismos días
-- **vs Meta individual** — diferencia % vs meta Prom/PAX fijada por el manager
-
----
-
-## 🗄 Estructura de datos
-
-### Google Sheets — hoja `dias`
-| fecha | uploadedAt | data |
-|---|---|---|
-| 2026-03-13 | 2026-03-13T21:00:00Z | `{"fileName":"...","saloneros":{...}}` |
-
-**Estructura de `data.saloneros`:**
-```json
-{
-  "Dolores": {
-    "pax": 20, "total": 238589, "com": 211130, "beb": 82335,
-    "iCom": 31, "iBeb": 21, "promPax": 11929, "bebPax": 1.05,
-    "ratioCB": 2.56, "ratioU": 1.5, "promPlato": 6811, "promBebida": 3921,
-    "prods": [["CRISPY TUNA BITES", 3, 24540], ...]
-  },
-  "Cajero Turno Tarde": {
-    "esCajero": true, "total": 162831,
-    "salon": 45000, "delivery": 117831,
-    "ordenes": 28, "ticketProm": 5815,
-    "prods": [...]
-  }
-}
-```
-
-### Google Sheets — hoja `comps`
-Competencias en formato JSON (`[{id, nombre, tipo, inicio, fin, premio, prods:[{name,pts}], parts:[...]}]`)
-
-### Google Sheets — hoja `meta`
-Metas y configuración (`{restaurante:{YYYY-MM: number}, saloneros:{name: number}}`)
-
----
-
-## 🔧 Parser XLS (BIFF8/OLE2)
-
-El parser lee archivos `.xls` nativamente en el browser sin librerías externas.
-
-**Columnas del XLS del PoS:**
-| Col | Índice | Nombre | Uso |
-|---|---|---|---|
-| A | 0 | Salonero | Nombre del salonero/cajero |
-| B | 1 | Producto | Nombre del producto o "PAX" |
-| C | 2 | Cantidad | Cantidad vendida / PAX |
-| D | 3 | MontoTotal | Monto bruto |
-| E | 4 | IVA | 13% — se resta del total |
-| F | 5 | Servicio | 10% — 0=delivery, >0=salón |
-| L | 11 | VentasBebidasMesero | Ventas bebidas (con impuestos) |
-| M | 12 | VentasComidasMesero | Ventas comidas (con impuestos) |
-| O | 14 | VentasTotalesMesero | Total bruto → neto = O − E − F |
-| I | 8 | ComidasMesero | Cantidad de platos |
-| J | 9 | BebidasMesero | Cantidad de bebidas |
-
-**Fix MULRK crítico:** Offset corregido `pos+8` → `pos+10` para leer correctamente valores RK.
-
-**Detección de cajeros:** Nombres `"Cajero Turno Mañana"` y `"cajero turno tarde"` (case-insensitive).
-
----
-
-## 📅 Upload múltiple de XLS
-
-El sistema detecta automáticamente la fecha desde el nombre del archivo:
-
-| Formato del nombre | Fecha detectada |
+### Owner — Equipo
+| Pestaña | Descripción |
 |---|---|
-| `salon 13 03 2026.xls` | 2026-03-13 ✓ |
-| `salon_13_03_2026.xls` | 2026-03-13 ✓ |
-| `2026-03-13.xls` | 2026-03-13 ✓ |
-| `salon 01 03.xls` | No detecta → pregunta |
+| **Competencias** | Crear y gestionar competencias entre saloneros (productos, puntos, participantes, premio) |
+| **Gestión equipo** | Performance individual por período: consistencia, tendencia, racha, KPIs vs metas |
+
+### Owner — Admin
+| Pestaña | Descripción |
+|---|---|
+| **Empleados** | Alta/baja/edición de empleados en Google Sheets (compartido con Caja y Propinas) |
+| **Config** | PINs actuales, URL del backend, lista de productos para clasificación, ventas anuales de referencia |
+
+### Manager — Operaciones + Equipo
+Hoy · Ventas · Histórico · Mix Ventas · Análisis · Cargar XLS · Equipo · Gestión equipo · Competencias · Propinas
+
+### G.General — Finanzas
+Ventas · Análisis · Histórico · Mix Ventas · Metas · Propinas · Cajeros
+
+### Empleado (dinámico según datos)
+| Pestaña | Condición |
+|---|---|
+| **Mi día** | Si el nombre aparece en los XLS cargados |
+| **Mi semana** | Si el nombre aparece en los XLS cargados |
+| **Mi historial** | Si el nombre aparece en los XLS cargados |
+| **Competencias** | Si participa en alguna competencia activa |
+| **Mis propinas** | Siempre visible |
 
 ---
 
-## 🏆 Sistema de competencias
+## 📐 Métricas clave
 
-- Productos con puntos configurables por unidad vendida
-- Ranking en tiempo real por puntos totales (qty × pts)
-- Backfill automático desde XLS ya cargados
-- Vista del salonero: posición + unidades + puntos por producto
-- Ordenadas automáticamente: **En curso → Próximas → Finalizadas**
+### Definiciones
+
+| Métrica | Fórmula | Notas |
+|---|---|---|
+| **Ventas Salón** (`total`) | Suma de ventas de saloneros (sin cajero) | Base de todos los KPIs de salón |
+| **Cajeros / Delivery** (`cajTotal`) | Suma de ventas con `esCajero = true` | |
+| **Restaurante** (`totalRest`) | `total + cajTotal` | Ventas netas sin IVA ni servicio |
+| **PAX** | Fila `COMENSALES` del XLS | Solo salón — delivery no registra PAX |
+| **Prom/PAX** | `ventas_salón / PAX_salón` | **Delivery nunca entra en numerador ni denominador** |
+| **Beb/PAX** | `unidades_bebidas / PAX` | Ideal ≥ 1.2 |
+| **Ratio C/B (₡)** | `ventas_comidas / ventas_bebidas` | Ideal 2.5–4.5 |
+| **ICP** | `propina_generada / ventas_totales × 100` | Índice de Conversión de Propina. ≥13% excelente · 10–13% bueno · <10% a mejorar |
+
+### Columnas del XLS del POS
+| Col | Nombre | Uso |
+|---|---|---|
+| A | Salonero | Nombre del salonero/cajero |
+| B | Producto | Nombre del producto o "COMENSALES" |
+| C | Cantidad | Cantidad / PAX |
+| D | MontoTotal | Monto bruto |
+| E | IVA | 13% |
+| F | Servicio | 10% — 0 = delivery, >0 = salón |
+| I | ComidasMesero | Cantidad de platos |
+| J | BebidasMesero | Cantidad de bebidas |
+| L | VentasBebidas | Ventas bebidas (con impuestos) |
+| M | VentasComidas | Ventas comidas (con impuestos) |
+| O | VentasTotales | Bruto → neto = O − E − F |
+
+---
+
+## 🍳 Sección Cocina en Propinas gerencial
+
+En la pestaña **Propinas** (vista Owner/Manager/G.General) aparece al final una sección separada para cocina:
+
+- Agrupa todos los tips de cocina por semana (`num_semana` del turno)
+- Divide el pool semanal **en partes iguales** entre los trabajadores de cocina que participaron esa semana
+- **Selena** (jefa de cocina) está excluida como receptora — su parte vuelve al pool
+- Muestra: tabla por semana, tabla por trabajador (mes actual) e histórico mensual
+
+---
+
+## 🗄 Estructura Google Sheets
+
+| Hoja | Contenido |
+|---|---|
+| `dias` | Datos parseados de los XLS diarios (JSON por fecha) |
+| `empleados` | Padrón de empleados (compartido con Caja y Propinas) |
+| `productos` | Catálogo de productos para clasificación bebidas/comidas |
+| `comps` | Competencias activas e históricas |
+| `metas` | Metas del restaurante y saloneros |
+| `propinas_turnos` | Turnos de propinas registrados |
+| `movimientos` | Movimientos de caja |
+| `proveedores_caja` | Lista de proveedores |
+| `turnos` | Cierres de turno de caja |
 
 ---
 
 ## 🚀 Setup en nuevo dispositivo
 
-1. Abrí `https://cachosatori.github.io/satori-dashboard/`
-2. El dashboard sincroniza automáticamente desde Google Sheets
+1. Abrir `https://cachosatori.github.io/satori-dashboard/`
+2. La app sincroniza automáticamente desde Google Sheets
 3. No requiere configuración adicional
 
 ---
 
-## 🔄 Flujo para subir XLS
+## 🔄 Flujo para subir XLS diario
 
-1. Entrá como **Manager** u **Owner**
-2. Pestaña **📂 Subir XLS**
-3. Arrastrá uno o varios archivos XLS
-4. Detección automática de fecha; si no puede, pregunta
-5. Los datos se guardan en localStorage + Google Sheets
-
----
-
-## 📧 Reportes Mensuales por correo
-
-Desde **Config** (solo Owner), tres botones envían reportes a satorisushibar@gmail.com:
-
-| Botón | Acción |
-|---|---|
-| 📈 Reporte de ventas | Envía el reporte de ventas del mes actual |
-| 💰 Reporte de propinas | Envía el reporte de propinas del mes actual |
-| 📧 Ambos reportes | Envía ambos en un solo clic |
-
-Los reportes también se envían **automáticamente**:
-- **Día 1 de cada mes** → mes anterior completo (trigger `reporteMensualCompleto`)
-- **Día 15 de cada mes** → mes en curso hasta esa fecha (trigger `reporteQuincenal`)
-
-Ver documentación completa del sistema de reportes en: `/reporte/README.md`
+1. Entrar como **Manager** u **Owner**
+2. Pestaña **Cargar XLS**
+3. Arrastrar uno o varios archivos `.xls / .xlsx`
+4. El parser detecta la fecha desde el nombre del archivo
+5. Los datos se guardan en `localStorage` + Google Sheets simultáneamente
 
 ---
 
-## 🏆 IRS — Índice de Rendimiento del Salonero
+## 🔧 Actualizar el Apps Script
 
-Métrica compuesta (0–100) incluida en los reportes mensuales para identificar al mejor empleado del mes:
-
-```
-IRS = (Ticket/PAX normalizado × 45%)
-    + (Constancia × 35%)
-    + (PAX/servicio normalizado × 20%)
-```
-
-| Componente | Peso | Descripción |
-|---|---|---|
-| Ticket/PAX | 45% | Cuánto vende por comensal (normalizado vs el mejor del grupo) |
-| Constancia | 35% | % de días trabajados del total de días con ventas en el mes |
-| PAX/servicio | 20% | Cuántos comensales atiende por servicio (normalizado) |
+1. Copiar el contenido de `satori_apps_script_v4.1.js` (carpeta SATORI PROPINAS)
+2. Ir a [script.google.com](https://script.google.com) → proyecto Satori
+3. `Ctrl+A` → pegar → `Ctrl+S`
+4. **Implementar → Administrar implementaciones → lápiz → Nueva versión → Implementar**
+5. La URL no cambia — las apps siguen funcionando sin modificaciones
 
 ---
 
-## 🗺 Roadmap
+## 🗺 Relacionado
 
-| Fase | Estado | Descripción |
-|---|---|---|
-| Fase 1 | ✅ Completo | HTML + localStorage, parser XLS, todas las métricas |
-| Fase 2 | ✅ Completo | Google Sheets backend, multi-dispositivo, cajeros, evaluación, metas |
-| Fase 3 | 🔲 Pendiente | PWA instalable (manifest.json + Service Worker) |
-| Fase 4 | ✅ Completo | PIN Manager + Owner, separación de vistas por rol |
-| Fase 5 | 🔲 Futuro | Backend real (Supabase) si la operación crece |
-
----
-
-## 🐛 Bugs resueltos
-
-| Bug | Solución |
-|---|---|
-| MULRK offset incorrecto | pos+8 → pos+10 |
-| Fechas corruptas en Sheets | `@STRING@` format + normalización YYYY-MM-DD |
-| PAX float (0.03) | Math.round() + sanitización |
-| Seed 09/03/2025 apareciendo siempre | Eliminado en v3 + wipe localStorage |
-| VentasTotalesMesero incluye impuestos | Total neto = O − E − F |
-| Duplicados al re-subir | Normalización de claves fecha |
-| PIN manager no sincronizaba entre dispositivos | PIN hardcodeado en código (MANAGER_PIN) |
-| Filtros de fecha no aplicaban en Safari | Polling 300ms + change/input/blur events |
-| Uds incorrectas en ranking competencias | Usar `_units` separado de `_total` en ranking |
-| Datos demo 09/03 aparecían tras reload | DB_VERSION bump a v3 + wipe localStorage |
-| Reporte: Mix C/B mostraba ₡ en vez de ítems | `iCom`/`iBeb` son cantidades, no montos — formato corregido |
-| Reporte: Tendencia semanal sin días ni promedio | Agregar `dias` y `avg` por semana en `_calcVentas` |
-| Reporte: Promedio por día ×12 veces | `diaMap` usaba totales por salonero → corregido a totales por día |
-| Reporte: Delivery sumado doble en Caja | `ventCaj = total - delivery`, no `total` completo del cajero |
-
----
-
-## 👥 Saloneros
-
-Lista dinámica — se construye automáticamente desde los XLS cargados.  
-Conocidos: `Dolores`, `Rocio`, `Jaime`, `Melani`, `Nacho`, `Jota`, `Joaquina`, `Maxi`, `ROSAURA M`
-
----
-
-## 📋 Historial de versiones del Apps Script
-
-| Versión | Cambio |
-|---|---|
-| v1 | Apps Script inicial |
-| v2 | Fix param handling GET/POST |
-| v3 | Fix fecha como Date object + @STRING@ format |
-| v4 | Fix saveDia con normalización de fecha |
-| v5 | getMetas/saveMetas + cajeros + saveMetas via GET fallback |
-| v6 | saveMetas en GET handler para compatibilidad total |
-| v4.1 (propinas) | Reportes por correo, IRS, top productos por tipo, fix delivery vs caja, mes actual vs anterior, trigger quincenal *(versión actual)* |
+- [satori-caja](https://github.com/CachoSatori/satori-caja) — Control de caja y pagos a proveedores
+- [satori-propinas](https://github.com/CachoSatori/satori-propinas) — Distribución de propinas por turno
