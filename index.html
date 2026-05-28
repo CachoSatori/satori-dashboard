@@ -2671,7 +2671,9 @@ function applyHistorico(){
 }
 
 function drawChart(canvas, dates, seriesData, colors, visibleLines, wrap){
-  const W = canvas.offsetWidth;
+  canvas.style.width  = '100%';
+  canvas.style.display = 'block';
+  const W = canvas.offsetWidth || (wrap ? wrap.clientWidth - 48 : 640);
   const H = 220;
   canvas.width = W;
   canvas.height = H;
